@@ -59,6 +59,8 @@ export function TopNav({
       '/dashboard',
       '/dashboard/projects',
       '/dashboard/updates',
+      '/dashboard/chat',
+      '/dashboard/crm',
       '/dashboard/people',
       '/dashboard/inbox',
       '/dashboard/analytics',
@@ -111,8 +113,10 @@ export function TopNav({
       <div
         className={cn(
           'flex items-center justify-between gap-3 rounded-2xl border p-3',
-          dashboardTokens.surface,
-          dashboardTokens.border,
+          'backdrop-blur-2xl backdrop-saturate-150',
+          'bg-white/65 dark:bg-slate-950/70',
+          'border-white/25 shadow-lg shadow-black/5 dark:border-white/10 dark:shadow-black/20',
+          'transition-all duration-300 ease-out',
         )}
       >
       <div className="flex min-w-0 items-center gap-3">

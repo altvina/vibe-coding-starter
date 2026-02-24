@@ -87,6 +87,8 @@ export type WorkspaceUpdate = {
   createdAt: string;
   body: string;
   comments: WorkspaceUpdateComment[];
+  /** When set, this update appears on the project feed; when absent, workspace feed only */
+  projectId?: string;
 };
 
 export type WorkspaceProject = {

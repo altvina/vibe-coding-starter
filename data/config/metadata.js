@@ -1,10 +1,10 @@
 const metadata = {
-  title: 'Mevolut | Simple B2C Fintech for your Money',
+  title: 'Altvina | Dashboard & CRM',
   description:
-    'Manage your money the easy way with Mevolut. Track expenses, send money, and grow your savings – safely and simply. Sign up free today!',
+    'Altvina dashboard and CRM. Your workspace for projects, people, updates, and collaboration. Sign in to get started.',
   domain: 'pageai.pro',
   logoTitle: '',
-  businessName: 'Mevolut',
+  businessName: 'Altvina',
   siteUrl: 'https://pageai.pro',
   siteRepo: '',
   socialBanner: '/api/og',
@@ -19,7 +19,7 @@ const metadata = {
   facebook: '',
   threads: '',
   mastodon: '',
-  author: 'Mevolut',
+  author: 'Altvina',
   language: 'en-us',
   theme: 'light',
   locale: 'en-US',

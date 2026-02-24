@@ -4,12 +4,14 @@ import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   BarChart3,
+  Briefcase,
   Crown,
   Handshake,
   Home,
   Inbox,
   ListChecks,
   KeyRound,
+  MessageSquare,
   Sparkles,
   SlidersHorizontal,
   UsersRound,
@@ -37,6 +39,8 @@ export function groupForHref(href: string) {
   }
   if (
     href.startsWith('/dashboard/updates') ||
+    href.startsWith('/dashboard/chat') ||
+    href.startsWith('/dashboard/crm') ||
     href.startsWith('/dashboard/inbox') ||
     href.startsWith('/dashboard/people')
   ) {
@@ -49,6 +53,7 @@ export function iconForHref(href: string) {
   if (href === '/dashboard') return Home;
   if (href.startsWith('/dashboard/projects')) return ListChecks;
   if (href.startsWith('/dashboard/updates')) return Workflow;
+  if (href.startsWith('/dashboard/chat')) return MessageSquare;
   if (href.startsWith('/dashboard/people')) return UsersRound;
   if (href.startsWith('/dashboard/inbox')) return Inbox;
   if (href.startsWith('/dashboard/analytics')) return BarChart3;
@@ -65,6 +70,8 @@ const preferredHrefOrder = [
   '/dashboard',
   '/dashboard/projects',
   '/dashboard/updates',
+  '/dashboard/chat',
+  '/dashboard/crm',
   '/dashboard/people',
   '/dashboard/inbox',
   '/dashboard/analytics',

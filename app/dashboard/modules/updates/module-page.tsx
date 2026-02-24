@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, MessageCircle, Send, UsersRound } from 'lucide-react';
+import { Check, MessageCircle, Send, UsersRound, LayoutGrid, FolderKanban } from 'lucide-react';
 
 import { Button } from '@/components/shared/ui/button';
 import { Checkbox } from '@/components/shared/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/shared/ui/popover';
+import { Tabs, TabsList, TabsTrigger } from '@/components/shared/ui/tabs';
 import { Textarea } from '@/components/shared/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/shared/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -48,6 +49,11 @@ export function UpdatesModulePage() {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [localUpdates, setLocalUpdates] = useState<WorkspaceUpdate[]>([]);
   const [targetWorkspaceIds, setTargetWorkspaceIds] = useState<string[]>([]);
+  /** 'workspace' | projectId: which feed to view */
+  const [feedFilter, setFeedFilter] = useState<'workspace' | string>('workspace');
+  /** When posting: also post to workspace feed and/or these project feeds */
+  const [postToWorkspaceFeed, setPostToWorkspaceFeed] = useState(true);
+  const [postToProjectIds, setPostToProjectIds] = useState<string[]>([]);
 
   useEffect(() => {
     const stored = loadStoredUpdates(activeWorkspaceId);
@@ -59,8 +65,10 @@ export function UpdatesModulePage() {
   }, [activeWorkspaceId]);
 
   const members = data?.workspace.members ?? EMPTY_MEMBERS;
+  const projects = useMemo(() => data?.workspace.projects ?? [], [data?.workspace.projects]);
   const seedUpdates = data?.workspace.updates ?? EMPTY_UPDATES;
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+  const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
   const currentAuthorId = useMemo(() => {
     const role = data?.role;
     if (!role) return members[0]?.id ?? 'unknown';
@@ -70,11 +78,18 @@ export function UpdatesModulePage() {
     return members.find((m) => m.role === role)?.id ?? members[0]?.id ?? 'unknown';
   }, [data?.role, members]);
 
-  const feed = useMemo(() => {
+  const allUpdates = useMemo(() => {
     const merged = [...localUpdates, ...seedUpdates];
     merged.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
     return merged;
   }, [localUpdates, seedUpdates]);
+
+  const feed = useMemo(() => {
+    if (feedFilter === 'workspace') {
+      return allUpdates.filter((u) => !u.projectId);
+    }
+    return allUpdates.filter((u) => u.projectId === feedFilter);
+  }, [allUpdates, feedFilter]);
 
   const canPost = data?.capabilities.canPostUpdates ?? false;
   const canComment = data?.capabilities.canCommentOnUpdates ?? false;
@@ -114,13 +129,47 @@ export function UpdatesModulePage() {
     return null;
   }
 
+  const feedFilterLabel =
+    feedFilter === 'workspace' ? 'Workspace feed' : projectById.get(feedFilter)?.name ?? 'Project feed';
+
+  function togglePostToProject(projectId: string) {
+    setPostToProjectIds((prev) =>
+      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
       <div className="lg:col-span-12">
-        <DashboardCard title="Updates">
-          <div className={cn('text-sm', dashboardTokens.textMuted)}>
-            Shared workspace updates. Altvina keeps comms structured and on-record.
-          </div>
+        <DashboardCard title="Quick team updates">
+          <p className={cn('text-sm', dashboardTokens.textMuted)}>
+            Post short updates to your workspace or a project feed. Choose the feed below to view or post to.
+          </p>
+          <Tabs
+            value={feedFilter}
+            onValueChange={(v) => setFeedFilter(v)}
+            className="mt-4"
+          >
+            <TabsList className={cn('h-auto flex-wrap gap-1 bg-slate-100 p-1 dark:bg-slate-800', dashboardTokens.border)}>
+              <TabsTrigger
+                value="workspace"
+                className={cn('gap-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900', dashboardTokens.focusRing)}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Workspace feed
+              </TabsTrigger>
+              {projects.map((p) => (
+                <TabsTrigger
+                  key={p.id}
+                  value={p.id}
+                  className={cn('gap-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900', dashboardTokens.focusRing)}
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  {p.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </DashboardCard>
       </div>
 
@@ -130,16 +179,14 @@ export function UpdatesModulePage() {
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder={canPost ? 'Write an update…' : 'Posting is disabled for your role.'}
+              placeholder={canPost ? 'What’s new? Share a quick update with the team…' : 'Posting is disabled for your role.'}
               disabled={!canPost}
               className={cn('min-h-24 rounded-2xl', dashboardTokens.focusRing)}
             />
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                  {canPost
-                    ? 'Use this for decisions, handoffs, and weekly snapshots.'
-                    : 'You can still read and comment (if enabled).'}
+                  {canPost ? 'Post to teams and feeds:' : 'You can still read and comment.'}
                 </div>
 
                 <Popover>
@@ -147,11 +194,12 @@ export function UpdatesModulePage() {
                     <Button
                       type="button"
                       variant="outline"
+                      size="sm"
                       className={cn('h-9 rounded-full px-3 text-xs font-semibold', dashboardTokens.focusRing)}
                       disabled={!canPost}
                     >
                       <UsersRound className="mr-2 h-4 w-4" />
-                      Post to: {targetLabel}
+                      {targetLabel}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
@@ -232,30 +280,87 @@ export function UpdatesModulePage() {
                     </div>
                   </PopoverContent>
                 </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn('h-9 rounded-full px-3 text-xs font-semibold', dashboardTokens.focusRing)}
+                      disabled={!canPost}
+                    >
+                      <FolderKanban className="mr-2 h-4 w-4" />
+                      Feeds: {postToWorkspaceFeed ? 'Workspace' : ''}
+                      {postToProjectIds.length ? ` + ${postToProjectIds.length} project(s)` : ''}
+                      {!postToWorkspaceFeed && !postToProjectIds.length ? 'None' : ''}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className={cn('w-72 rounded-2xl border p-3', dashboardTokens.surface, dashboardTokens.border)}
+                  >
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold">Show on feeds</div>
+                      <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+                        Your update will appear on the selected feeds for the chosen teams.
+                      </div>
+                      <label className="flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2">
+                        <Checkbox
+                          checked={postToWorkspaceFeed}
+                          onCheckedChange={(c) => setPostToWorkspaceFeed(!!c)}
+                        />
+                        <span className="text-sm font-medium">Workspace feed</span>
+                      </label>
+                      {projects.map((p) => (
+                        <label key={p.id} className="flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2">
+                          <Checkbox
+                            checked={postToProjectIds.includes(p.id)}
+                            onCheckedChange={() => togglePostToProject(p.id)}
+                          />
+                          <span className="text-sm font-medium">{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <Button
                 type="button"
                 className="rounded-full"
-                disabled={!canPost || body.trim().length < 3 || targetWorkspaceIds.length === 0}
+                disabled={
+                  !canPost ||
+                  body.trim().length < 3 ||
+                  targetWorkspaceIds.length === 0 ||
+                  (!postToWorkspaceFeed && postToProjectIds.length === 0)
+                }
                 onClick={() => {
                   const nowIso = new Date().toISOString();
                   const authorName =
                     memberById.get(currentAuthorId)?.displayName ?? data.user.name ?? 'You';
-                  const update = createLocalUpdate({
-                    authorId: currentAuthorId,
-                    authorName,
-                    body: body.trim(),
-                    nowIso,
-                  });
-
                   const targets = targetWorkspaceIds.length ? targetWorkspaceIds : [activeWorkspaceId];
+                  const toCreate: { projectId?: string }[] = [];
+                  if (postToWorkspaceFeed) toCreate.push({});
+                  postToProjectIds.forEach((id) => toCreate.push({ projectId: id }));
+
+                  const newUpdates = toCreate.map(({ projectId }) =>
+                    createLocalUpdate({
+                      authorId: currentAuthorId,
+                      authorName,
+                      body: body.trim(),
+                      nowIso,
+                      projectId,
+                    })
+                  );
+                  const nextLocal = [...newUpdates, ...localUpdates];
+
                   targets.forEach((workspaceId) => {
                     if (workspaceId === activeWorkspaceId) {
-                      persistUpdates([update, ...localUpdates]);
+                      persistUpdates(nextLocal);
                       return;
                     }
-                    prependStoredUpdate(workspaceId, update);
+                    newUpdates.forEach((u) => prependStoredUpdate(workspaceId, u));
                   });
 
                   setBody('');
@@ -270,7 +375,7 @@ export function UpdatesModulePage() {
       </div>
 
       <div className="lg:col-span-12">
-        <DashboardCard title="Feed">
+        <DashboardCard title={feedFilterLabel}>
           <div className="space-y-4">
             {feed.map((u) => {
               const author =
@@ -292,8 +397,15 @@ export function UpdatesModulePage() {
                       </Avatar>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold">{author}</div>
-                        <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+                        <div className={cn('flex items-center gap-2 text-xs', dashboardTokens.textSubtle)}>
                           {formatDateTime(u.createdAt)}
+                          {u.projectId ? (
+                            <span className="rounded-full bg-primary-100 px-2 py-0.5 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">
+                              {projectById.get(u.projectId)?.name ?? 'Project'}
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 dark:bg-slate-800">Workspace</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -379,7 +491,9 @@ export function UpdatesModulePage() {
 
             {!feed.length ? (
               <div className={cn('text-sm', dashboardTokens.textMuted)}>
-                No updates yet.
+                {feedFilter === 'workspace'
+                  ? 'No workspace updates yet. Post one above or switch to a project feed.'
+                  : 'No updates on this project feed yet.'}
               </div>
             ) : null}
           </div>

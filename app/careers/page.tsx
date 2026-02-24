@@ -9,22 +9,17 @@ export default function Careers() {
       <div className="w-full flex flex-col items-center my-12">
         <section className="w-full p-6 container-narrow">
           <h1 className="text-4xl font-semibold leading-tight md:leading-tight max-w-xs sm:max-w-none md:text-6xl fancy-heading">
-            Join the Mevolut Team
+            Careers at Altvina
           </h1>
 
           <p className="mt-6 md:text-xl">
-            At Mevolut, we're on a mission to make personal finance
-            straightforward and accessible for everyone. We're looking for
-            passionate, innovative individuals to help us revolutionize how
-            people manage their money. If you're eager to make an impact and
-            thrive in a dynamic environment, we want to hear from you.
+            Altvina is building tools that help teams work better together. We're
+            looking for people who care about product, design, and engineering.
           </p>
 
           <p className="mt-6 md:text-xl">
-            Explore opportunities to grow your career with a company dedicated
-            to safety, simplicity, and customer success. Bring your ideas,
-            skills, and enthusiasm — together, we can build something
-            extraordinary.
+            For open roles and company information, visit the main Altvina
+            website. This app is the Altvina dashboard and CRM portal.
           </p>
         </section>
       </div>

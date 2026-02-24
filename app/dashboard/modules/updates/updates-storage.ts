@@ -32,6 +32,7 @@ export function createLocalUpdate(args: {
   authorName?: string;
   body: string;
   nowIso: string;
+  projectId?: string;
 }): WorkspaceUpdate {
   return {
     id: `local-u-${args.nowIso}`,
@@ -40,6 +41,7 @@ export function createLocalUpdate(args: {
     createdAt: args.nowIso,
     body: args.body,
     comments: [],
+    projectId: args.projectId,
   };
 }
 

@@ -13,34 +13,29 @@ export default function FAQ() {
           </h1>
 
           <p className="mt-6 md:text-xl">
-            Welcome to the Mevolut FAQ. Here you'll find answers to the most
-            common questions about managing your money with us.
+            Common questions about the Altvina dashboard and access.
           </p>
 
           <p className="mt-6 md:text-xl">
-            <strong>How do I get started with Mevolut?</strong> Signing up is
-            easy and free! Simply create an account to start tracking your
-            expenses, sending money, and growing your savings securely.
+            <strong>How do I get started?</strong> Sign in with your Altvina
+            account. If you don't have access, request it from your admin or
+            visit the main Altvina website.
           </p>
 
           <p className="mt-6 md:text-xl">
-            <strong>Is my financial information safe?</strong> Absolutely. We
-            prioritize your security with advanced encryption and security
-            protocols to keep your data safe.
+            <strong>Is my data secure?</strong> Yes. The dashboard uses secure
+            sign-in and role-based access. We don't sell your information.
           </p>
 
           <p className="mt-6 md:text-xl">
-            <strong>Can I use Mevolut on any device?</strong> Yes, our platform
-            is fully responsive and accessible from any device with internet
-            access.
+            <strong>Can I use the dashboard on any device?</strong> Yes. The
+            dashboard is responsive and works on phones, tablets, and desktops.
           </p>
 
           <p className="mt-6 md:text-xl">
-            <strong>
-              What features are available to help me manage my money?
-            </strong>{' '}
-            You can track expenses, send and receive money, set savings goals,
-            and view detailed reports to better understand your finances.
+            <strong>What can I do in the dashboard?</strong> You can use
+            Projects, People, Updates, Inbox, and other modules your role allows.
+            Admins can configure workspaces and permissions.
           </p>
 
           <p className="mt-6 md:text-xl">

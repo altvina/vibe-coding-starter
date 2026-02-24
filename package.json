@@ -1,6 +1,6 @@
 {
-  "name": "Mevolut",
-  "description": "Manage your money the easy way with Mevolut. Track expenses, send money, and grow your savings – safely and simply. Sign up free today!",
+  "name": "Altvina",
+  "description": "Altvina dashboard and CRM. Workspace for projects, people, updates, and collaboration.",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,8 @@
     "analyze": "cross-env ANALYZE=true next build",
     "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
     "pretty": "prettier --write .",
-    "appinfo": "node ./scripts/generateAppInfo.mjs"
+    "appinfo": "node ./scripts/generateAppInfo.mjs",
+    "crm:migrate": "node ./scripts/runCrmMigrations.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
