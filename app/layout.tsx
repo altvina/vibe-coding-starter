@@ -8,6 +8,7 @@ import { colors } from '@/data/config/colors.js';
 import '@/css/globals.css';
 import { SearchProvider } from '@/components/shared/SearchProvider';
 import { AnalyticsWrapper } from '@/components/shared/Analytics';
+import { Toaster } from '@/components/shared/ui/sonner';
 
 const displayFont = Nunito_Sans({
   subsets: ['latin'],
@@ -132,6 +133,7 @@ export default function RootLayout({
       <body className="flex flex-col bg-white text-black antialiased dark:bg-gray-950 dark:text-white min-h-screen">
         <ThemeProviders>
           <AnalyticsWrapper />
+          <Toaster />
 
           <div className="w-full flex flex-col justify-between items-center font-sans">
             <SearchProvider>
