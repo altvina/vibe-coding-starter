@@ -5,6 +5,7 @@ import {
 } from '@/components/landing';
 import Image from 'next/image';
 import Link from 'next/link';
+import { siteLogos } from '@/data/config/logos';
 
 export const Footer = ({ className }: { className?: string }) => {
   return (
@@ -18,13 +19,14 @@ export const Footer = ({ className }: { className?: string }) => {
       backgroundGlowVariant="primary"
       withBackgroundGradient
       logoComponent={
-        <div className="flex items-center text-primary-900 dark:text-primary-100 gap-3">
+        <div className="flex items-center gap-3 text-primary-900 dark:text-primary-100">
           <Image
-            src="/static/images/logo.png"
+            src={siteLogos.svg}
             alt="Mevolut logo"
-            width={200}
-            height={200}
-            className="h-8 w-8 rounded-full"
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0 invert dark:invert-0"
+            unoptimized
           />
           {'Mevolut '}
         </div>

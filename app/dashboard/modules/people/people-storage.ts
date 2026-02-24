@@ -47,20 +47,61 @@ export function mergeMembers(args: {
   const deleted = new Set(args.store.deleted);
   const byId = new Map<string, WorkspaceMember>();
 
+  function splitDisplayName(displayName: string) {
+    const cleaned = displayName.trim().replace(/\s+/g, ' ');
+    if (!cleaned) return { firstName: '', lastName: '' };
+    const parts = cleaned.split(' ');
+    const firstName = parts[0] ?? '';
+    const lastName = parts.slice(1).join(' ');
+    return { firstName, lastName };
+  }
+
+  /** Derive a URL-safe username from a name (e.g. "Jordan Taylor" -> "jordan.taylor"). */
+  function deriveUsername(name: string, memberId: string): string {
+    const slug = name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '.')
+      .replace(/[^a-z0-9._-]/g, '');
+    return slug || memberId.replace(/^local-member-/, 'user.');
+  }
+
+  function normalizeMember(member: WorkspaceMember): WorkspaceMember {
+    const first = member.firstName?.trim() ?? '';
+    const last = member.lastName?.trim() ?? '';
+    let normalized: WorkspaceMember;
+    if (first || last) {
+      const displayName = `${first} ${last}`.trim() || member.displayName;
+      normalized = { ...member, firstName: first || undefined, lastName: last || undefined, displayName };
+    } else {
+      const split = splitDisplayName(member.displayName);
+      normalized = {
+        ...member,
+        firstName: split.firstName || undefined,
+        lastName: split.lastName || undefined,
+        displayName: member.displayName,
+      };
+    }
+    if (!normalized.username?.trim()) {
+      normalized = { ...normalized, username: deriveUsername(normalized.displayName, normalized.id) };
+    }
+    return normalized;
+  }
+
   args.base.forEach((m) => {
     if (deleted.has(m.id)) return;
-    byId.set(m.id, m);
+    byId.set(m.id, normalizeMember(m));
   });
 
   args.store.created.forEach((m) => {
     if (deleted.has(m.id)) return;
-    byId.set(m.id, m);
+    byId.set(m.id, normalizeMember(m));
   });
 
   Object.entries(args.store.updated).forEach(([id, patch]) => {
     const current = byId.get(id);
     if (!current) return;
-    byId.set(id, { ...current, ...patch });
+    byId.set(id, normalizeMember({ ...current, ...patch }));
   });
 
   return Array.from(byId.values());

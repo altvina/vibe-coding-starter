@@ -12,7 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/shared/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/shared/ui/collapsible';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/shared/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/shared/ui/tabs';
 import { cn } from '@/lib/utils';
+import { ChevronDown, ChevronRight, Settings2 } from 'lucide-react';
 
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
 import { useDashboardData } from '@/app/dashboard/dashboard-context';
@@ -108,6 +120,123 @@ function setProjectRoleOverride(args: {
   };
 }
 
+type WorkspaceMember = { id: string; displayName: string; role: string; title?: string | null };
+
+function MemberOptionsPopover({
+  member,
+  audience,
+  config,
+  workspaceId,
+  onSave,
+  children,
+}: {
+  member: WorkspaceMember;
+  audience: WorkspaceAudience;
+  config: WorkspaceConfigV1;
+  workspaceId: string;
+  onSave: (next: WorkspaceConfigV1) => void;
+  children: React.ReactNode;
+}) {
+  const o = getOverride(config, workspaceId, member.id, audience);
+  const visible = (o?.visible ?? true) as boolean;
+  const alias = (o?.alias ?? '') as string;
+  const showTitle = (o?.showTitle ?? true) as boolean;
+  const showBio = (o?.showBio ?? false) as boolean;
+  const audienceLabel = audience === 'client' ? 'Client view' : 'Expert view';
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverContent align="end" className={cn('w-80', dashboardTokens.border)}>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
+              {audienceLabel} · {member.displayName}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className={cn('text-xs', dashboardTokens.textSubtle)}>Visible</span>
+            <Switch
+              checked={visible}
+              onCheckedChange={(checked) =>
+                onSave(
+                  setOverride({
+                    config,
+                    workspaceId,
+                    memberId: member.id,
+                    audience,
+                    patch: { visible: checked },
+                  }),
+                )
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>
+              Masked display name (optional)
+            </label>
+            <Input
+              value={alias}
+              onChange={(e) =>
+                onSave(
+                  setOverride({
+                    config,
+                    workspaceId,
+                    memberId: member.id,
+                    audience,
+                    patch: { alias: e.target.value },
+                  }),
+                )
+              }
+              placeholder={audience === 'client' ? 'e.g., Expert A' : 'e.g., Client A'}
+              className={cn('h-8 rounded-lg text-sm', dashboardTokens.focusRing)}
+              disabled={!visible}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <label className="flex items-center gap-2">
+              <Switch
+                checked={showTitle}
+                onCheckedChange={(checked) =>
+                  onSave(
+                    setOverride({
+                      config,
+                      workspaceId,
+                      memberId: member.id,
+                      audience,
+                      patch: { showTitle: checked },
+                    }),
+                  )
+                }
+                disabled={!visible}
+              />
+              <span className={cn('text-xs', dashboardTokens.textSubtle)}>Show title</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <Switch
+                checked={showBio}
+                onCheckedChange={(checked) =>
+                  onSave(
+                    setOverride({
+                      config,
+                      workspaceId,
+                      memberId: member.id,
+                      audience,
+                      patch: { showBio: checked },
+                    }),
+                  )
+                }
+                disabled={!visible}
+              />
+              <span className={cn('text-xs', dashboardTokens.textSubtle)}>Show bio</span>
+            </label>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function WorkspaceAdminModulePage() {
   const { data } = useDashboardData();
   const { activeWorkspaceId } = useDashboardWorkspace();
@@ -168,160 +297,221 @@ export function WorkspaceAdminModulePage() {
       </div>
 
       <div className="lg:col-span-12">
-        <DashboardCard title="Member visibility + masking">
-          <div className="space-y-6">
-            {members.map((m) => {
-              const client = getOverride(config, activeWorkspaceId, m.id, 'client');
-              const expert = getOverride(config, activeWorkspaceId, m.id, 'expert');
-              const clientVisible = client?.visible ?? true;
-              const expertVisible = expert?.visible ?? true;
+        <DashboardCard title="Member visibility & masking">
+          <Tabs defaultValue="member" className="mt-0">
+            <TabsList className={cn('mb-4 h-9 rounded-lg', dashboardTokens.surfaceMuted)}>
+              <TabsTrigger value="member" className="text-xs sm:text-sm">
+                By member
+              </TabsTrigger>
+              <TabsTrigger value="audience" className="text-xs sm:text-sm">
+                By audience
+              </TabsTrigger>
+            </TabsList>
+            <p className={cn('mb-4 text-xs', dashboardTokens.textMuted)}>
+              Toggle visibility per audience (Client / Expert). Use <strong>Options</strong> to set
+              a masked name or show title/bio for that audience.
+            </p>
 
-              return (
+            <TabsContent value="member" className="mt-0">
+              <div className="space-y-2">
                 <div
-                  key={m.id}
-                  className={cn('rounded-2xl border p-4', dashboardTokens.border)}
+                  className={cn(
+                    'grid grid-cols-[1fr_auto_auto] gap-2 rounded-lg px-3 py-2 text-xs font-medium',
+                    dashboardTokens.textSubtle,
+                  )}
                 >
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">{m.displayName}</div>
-                      <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                        {m.role.toUpperCase()} • {m.title ?? '—'}
+                  <span>Member</span>
+                  <span className="text-center">Client</span>
+                  <span className="text-center">Expert</span>
+                </div>
+                {members.map((m) => {
+                  const clientO = getOverride(config, activeWorkspaceId, m.id, 'client');
+                  const expertO = getOverride(config, activeWorkspaceId, m.id, 'expert');
+                  const clientVisible = clientO?.visible ?? true;
+                  const expertVisible = expertO?.visible ?? true;
+                  const memberRow: WorkspaceMember = {
+                    id: m.id,
+                    displayName: m.displayName,
+                    role: m.role,
+                    title: m.title,
+                  };
+                  return (
+                    <div
+                      key={m.id}
+                      className={cn(
+                        'grid grid-cols-1 gap-3 rounded-xl border py-3 px-3 sm:grid-cols-[1fr_auto_auto] sm:gap-2',
+                        dashboardTokens.border,
+                        dashboardTokens.surfaceMuted,
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{m.displayName}</div>
+                        <div className={cn('text-xs truncate', dashboardTokens.textSubtle)}>
+                          {m.role.toUpperCase()}
+                          {m.title ? ` · ${m.title}` : ''}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-start gap-2 sm:justify-center">
+                        <Switch
+                          checked={clientVisible}
+                          onCheckedChange={(checked) =>
+                            persist(
+                              setOverride({
+                                config,
+                                workspaceId: activeWorkspaceId,
+                                memberId: m.id,
+                                audience: 'client',
+                                patch: { visible: checked },
+                              }),
+                            )
+                          }
+                        />
+                        <MemberOptionsPopover
+                          member={memberRow}
+                          audience="client"
+                          config={config}
+                          workspaceId={activeWorkspaceId}
+                          onSave={persist}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                            aria-label="Client view options"
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                        </MemberOptionsPopover>
+                      </div>
+                      <div className="flex items-center justify-start gap-2 sm:justify-center">
+                        <Switch
+                          checked={expertVisible}
+                          onCheckedChange={(checked) =>
+                            persist(
+                              setOverride({
+                                config,
+                                workspaceId: activeWorkspaceId,
+                                memberId: m.id,
+                                audience: 'expert',
+                                patch: { visible: checked },
+                              }),
+                            )
+                          }
+                        />
+                        <MemberOptionsPopover
+                          member={memberRow}
+                          audience="expert"
+                          config={config}
+                          workspaceId={activeWorkspaceId}
+                          onSave={persist}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                            aria-label="Expert view options"
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                        </MemberOptionsPopover>
                       </div>
                     </div>
-                    <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                      Member ID: {m.id}
-                    </div>
-                  </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
 
-                  <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    {([
-                      { audience: 'client' as const, title: 'Client view' },
-                      { audience: 'expert' as const, title: 'Expert view' },
-                    ] as const).map((col) => {
-                      const o = getOverride(config, activeWorkspaceId, m.id, col.audience);
-                      const visible = (o?.visible ?? true) as boolean;
-                      const alias = (o?.alias ?? '') as string;
-                      const showTitle = (o?.showTitle ?? true) as boolean;
-                      const showBio = (o?.showBio ?? false) as boolean;
-
-                      return (
-                        <div
-                          key={col.audience}
-                          className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="text-sm font-semibold">{col.title}</div>
-                            <div className="flex items-center gap-2">
-                              <span className={cn('text-xs', dashboardTokens.textSubtle)}>
-                                Visible
-                              </span>
-                              <Switch
-                                checked={visible}
-                                onCheckedChange={(checked) =>
-                                  persist(
-                                    setOverride({
-                                      config,
-                                      workspaceId: activeWorkspaceId,
-                                      memberId: m.id,
-                                      audience: col.audience,
-                                      patch: { visible: checked },
-                                    }),
-                                  )
-                                }
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-3 space-y-3">
-                            <div className="space-y-1">
-                              <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                                Masked display name (optional)
+            <TabsContent value="audience" className="mt-0">
+              <div className="space-y-6">
+                {(['client', 'expert'] as const).map((audience) => {
+                  const label = audience === 'client' ? 'Client view' : 'Expert view';
+                  return (
+                    <div key={audience} className={cn('rounded-xl border p-4', dashboardTokens.border)}>
+                      <h3 className={cn('mb-3 text-sm font-semibold', dashboardTokens.text)}>
+                        {label}
+                      </h3>
+                      <div className="space-y-2">
+                        {members.map((m) => {
+                          const o = getOverride(config, activeWorkspaceId, m.id, audience);
+                          const visible = (o?.visible ?? true) as boolean;
+                          const memberRow: WorkspaceMember = {
+                            id: m.id,
+                            displayName: m.displayName,
+                            role: m.role,
+                            title: m.title,
+                          };
+                          return (
+                            <div
+                              key={m.id}
+                              className={cn(
+                                'flex flex-wrap items-center justify-between gap-2 rounded-lg py-2 px-3',
+                                dashboardTokens.surfaceMuted,
+                              )}
+                            >
+                              <div className="min-w-0">
+                                <span className="text-sm font-medium truncate block">
+                                  {m.displayName}
+                                </span>
+                                <span className={cn('text-xs', dashboardTokens.textSubtle)}>
+                                  {m.role.toUpperCase()}
+                                </span>
                               </div>
-                              <Input
-                                value={alias}
-                                onChange={(e) =>
-                                  persist(
-                                    setOverride({
-                                      config,
-                                      workspaceId: activeWorkspaceId,
-                                      memberId: m.id,
-                                      audience: col.audience,
-                                      patch: { alias: e.target.value },
-                                    }),
-                                  )
-                                }
-                                placeholder={col.audience === 'client' ? 'e.g., Expert A' : 'e.g., Client A'}
-                                className={cn('rounded-2xl', dashboardTokens.focusRing)}
-                                disabled={!visible}
-                              />
-                            </div>
-
-                            <div className="flex flex-wrap gap-3">
-                              <label className="flex items-center gap-2">
+                              <div className="flex items-center gap-2">
                                 <Switch
-                                  checked={showTitle}
+                                  checked={visible}
                                   onCheckedChange={(checked) =>
                                     persist(
                                       setOverride({
                                         config,
                                         workspaceId: activeWorkspaceId,
                                         memberId: m.id,
-                                        audience: col.audience,
-                                        patch: { showTitle: checked },
+                                        audience,
+                                        patch: { visible: checked },
                                       }),
                                     )
                                   }
-                                  disabled={!visible}
                                 />
-                                <span className={cn('text-xs', dashboardTokens.textSubtle)}>
-                                  Show title
-                                </span>
-                              </label>
-
-                              <label className="flex items-center gap-2">
-                                <Switch
-                                  checked={showBio}
-                                  onCheckedChange={(checked) =>
-                                    persist(
-                                      setOverride({
-                                        config,
-                                        workspaceId: activeWorkspaceId,
-                                        memberId: m.id,
-                                        audience: col.audience,
-                                        patch: { showBio: checked },
-                                      }),
-                                    )
-                                  }
-                                  disabled={!visible}
-                                />
-                                <span className={cn('text-xs', dashboardTokens.textSubtle)}>
-                                  Show bio
-                                </span>
-                              </label>
+                                <MemberOptionsPopover
+                                  member={memberRow}
+                                  audience={audience}
+                                  config={config}
+                                  workspaceId={activeWorkspaceId}
+                                  onSave={persist}
+                                >
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 gap-1.5 pl-2 pr-2 text-muted-foreground hover:text-foreground"
+                                    aria-label={`Options for ${m.displayName} in ${label}`}
+                                  >
+                                    <Settings2 className="h-3.5 w-3.5" />
+                                    <span className="text-xs">Options</span>
+                                  </Button>
+                                </MemberOptionsPopover>
+                              </div>
                             </div>
-
-                            <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                              Effective: {col.audience === 'client' ? (clientVisible ? 'visible' : 'hidden') : (expertVisible ? 'visible' : 'hidden')}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
+          </Tabs>
         </DashboardCard>
       </div>
 
       <div className="lg:col-span-12">
-        <DashboardCard title="Project-specific roles (per contract)">
-          <div className={cn('text-sm', dashboardTokens.textMuted)}>
-            Engagement roles are defined per project (e.g., the same person can be an Expert on one project and a Partner on another).
-          </div>
-
-          <div className="mt-4 space-y-6">
+        <DashboardCard title="Project-specific roles">
+          <p className={cn('mb-4 text-sm', dashboardTokens.textMuted)}>
+            Set engagement roles per project (e.g. Expert on one, Partner on another). Expand a
+            project to edit.
+          </p>
+          <div className="space-y-2">
             {projects.map((p) => {
               const membersInProject = projectMemberships
                 .filter((pm) => pm.projectId === p.id)
@@ -329,94 +519,113 @@ export function WorkspaceAdminModulePage() {
               const visibleMembers = members.filter((m) => membersInProject.includes(m.id));
 
               return (
-                <div key={p.id} className={cn('rounded-2xl border p-4', dashboardTokens.border)}>
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">{p.name}</div>
-                      <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                        Project ID: {p.id}
-                      </div>
-                    </div>
-                    <div className={cn('text-xs tabular-nums', dashboardTokens.textSubtle)}>
-                      {visibleMembers.length} members
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {visibleMembers.map((m) => {
-                      const current =
-                        getProjectRoleOverride({
-                          config,
-                          workspaceId: activeWorkspaceId,
-                          projectId: p.id,
-                          memberId: m.id,
-                        }) ||
-                        projectMemberships.find((pm) => pm.projectId === p.id && pm.memberId === m.id)
-                          ?.engagementRole ||
-                        (m.role === 'expert' ? 'Expert' : m.role === 'staff' ? 'Altvina' : 'Client');
-
-                      return (
-                        <div
-                          key={m.id}
-                          className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-900"
-                        >
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold">{m.displayName}</div>
-                            <div className={cn('truncate text-xs', dashboardTokens.textSubtle)}>
-                              {m.role.toUpperCase()} • {m.title ?? '—'}
-                            </div>
-                          </div>
-
-                          <div className="w-44">
-                            <Select
-                              value={current}
-                              onValueChange={(value) =>
-                                persist(
-                                  setProjectRoleOverride({
-                                    config,
-                                    workspaceId: activeWorkspaceId,
-                                    projectId: p.id,
-                                    memberId: m.id,
-                                    engagementRole: value,
-                                  }),
-                                )
-                              }
-                            >
-                              <SelectTrigger className={cn('rounded-2xl', dashboardTokens.focusRing)}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {['Client', 'Expert', 'Partner', 'Altvina', 'Observer'].map((opt) => (
-                                  <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                <Collapsible key={p.id} defaultOpen={false} className="group">
+                  <CollapsibleTrigger
+                    className={cn(
+                      'flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:opacity-90',
+                      dashboardTokens.border,
+                      dashboardTokens.surfaceMuted,
+                    )}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-90" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">{p.name}</div>
+                        <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+                          {visibleMembers.length} member{visibleMembers.length !== 1 ? 's' : ''}
                         </div>
-                      );
-                    })}
-
-                    {!visibleMembers.length ? (
-                      <div className={cn('text-sm', dashboardTokens.textMuted)}>
-                        No members are assigned to this project yet.
                       </div>
-                    ) : null}
-                  </div>
-                </div>
+                    </div>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50 group-data-[state=open]:hidden" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 space-y-2 pl-6">
+                      {visibleMembers.length === 0 ? (
+                        <p className={cn('py-2 text-sm', dashboardTokens.textMuted)}>
+                          No members assigned to this project yet.
+                        </p>
+                      ) : (
+                        visibleMembers.map((m) => {
+                          const current =
+                            getProjectRoleOverride({
+                              config,
+                              workspaceId: activeWorkspaceId,
+                              projectId: p.id,
+                              memberId: m.id,
+                            }) ||
+                            projectMemberships.find(
+                              (pm) => pm.projectId === p.id && pm.memberId === m.id,
+                            )?.engagementRole ||
+                            (m.role === 'expert'
+                              ? 'Expert'
+                              : m.role === 'staff'
+                                ? 'Altvina'
+                                : 'Client');
+
+                          return (
+                            <div
+                              key={m.id}
+                              className={cn(
+                                'flex items-center justify-between gap-3 rounded-lg border py-2 px-3',
+                                dashboardTokens.border,
+                                dashboardTokens.surface,
+                              )}
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium">{m.displayName}</div>
+                                <div className={cn('truncate text-xs', dashboardTokens.textSubtle)}>
+                                  {m.role.toUpperCase()}
+                                  {m.title ? ` · ${m.title}` : ''}
+                                </div>
+                              </div>
+                              <div className="w-40 shrink-0">
+                                <Select
+                                  value={current}
+                                  onValueChange={(value) =>
+                                    persist(
+                                      setProjectRoleOverride({
+                                        config,
+                                        workspaceId: activeWorkspaceId,
+                                        projectId: p.id,
+                                        memberId: m.id,
+                                        engagementRole: value,
+                                      }),
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger
+                                    className={cn('h-8 rounded-lg text-xs', dashboardTokens.focusRing)}
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {['Client', 'Expert', 'Partner', 'Altvina', 'Observer'].map(
+                                      (opt) => (
+                                        <SelectItem key={opt} value={opt}>
+                                          {opt}
+                                        </SelectItem>
+                                      ),
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               );
             })}
-
-            {!projects.length ? (
-              <div className={cn('text-sm', dashboardTokens.textMuted)}>
+            {projects.length === 0 && (
+              <p className={cn('py-4 text-sm', dashboardTokens.textMuted)}>
                 No projects in this workspace yet.
-              </div>
-            ) : null}
+              </p>
+            )}
           </div>
         </DashboardCard>
       </div>
     </div>
   );
 }
-

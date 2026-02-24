@@ -70,6 +70,14 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: [siteConfig.socialBanner],
   },
+  icons: {
+    icon: [
+      { url: '/static/favicons/favicon.ico', sizes: 'any' },
+      { url: '/static/favicons/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/static/favicons/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+    ],
+    apple: '/static/favicons/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -93,27 +101,55 @@ export default function RootLayout({
         </style>
 
         <link
+          rel="icon"
+          href="/static/favicons/favicon.ico"
+          sizes="any"
+        />
+        <link
           rel="apple-touch-icon"
-          sizes="76x76"
+          sizes="180x180"
           href="/static/favicons/apple-touch-icon.png"
+          media="(prefers-color-scheme: light)"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/static/favicons/apple-touch-icon-dark.png"
+          media="(prefers-color-scheme: dark)"
         />
         <link
           rel="icon"
           type="image/png"
           sizes="32x32"
           href="/static/favicons/favicon-32x32.png"
+          media="(prefers-color-scheme: light)"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/static/favicons/favicon-32x32-dark.png"
+          media="(prefers-color-scheme: dark)"
         />
         <link
           rel="icon"
           type="image/png"
           sizes="16x16"
           href="/static/favicons/favicon-16x16.png"
+          media="(prefers-color-scheme: light)"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/static/favicons/favicon-16x16-dark.png"
+          media="(prefers-color-scheme: dark)"
         />
         <link rel="manifest" href="/static/favicons/manifest.webmanifest" />
         <link
           rel="mask-icon"
           href="/static/favicons/safari-pinned-tab.svg"
-          color="#5bbad5"
+          color="#4f46e5"
         />
         <meta name="generator" content="Shipixen" />
         <meta name="msapplication-TileColor" content="#000000" />

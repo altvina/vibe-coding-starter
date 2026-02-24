@@ -51,17 +51,31 @@ export type WorkspaceSummary = {
 
 export type WorkspaceMember = {
   id: string;
+  firstName?: string;
+  lastName?: string;
   displayName: string;
+  /** Alias for @mentions, URLs, and display; unique per workspace in practice */
+  username?: string;
   role: 'client' | 'expert' | 'staff';
+  /** Professional headline / tagline (e.g. "Fractional COO · Ops & Automation") */
+  headline?: string;
   title?: string;
   bio?: string;
-  contactMask?: { email?: boolean; phone?: boolean };
+  location?: string;
+  phone?: string;
   email?: string;
+  linkedInUrl?: string;
+  website?: string;
+  /** Comma-separated or array of skills/areas (e.g. "Operations, Strategy, Analytics") */
+  skills?: string;
+  fieldMask?: { name?: boolean; title?: boolean; bio?: boolean };
+  contactMask?: { email?: boolean; phone?: boolean };
 };
 
 export type WorkspaceUpdateComment = {
   id: string;
   authorId: string;
+  authorName?: string;
   createdAt: string;
   body: string;
 };
@@ -69,6 +83,7 @@ export type WorkspaceUpdateComment = {
 export type WorkspaceUpdate = {
   id: string;
   authorId: string;
+  authorName?: string;
   createdAt: string;
   body: string;
   comments: WorkspaceUpdateComment[];

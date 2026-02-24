@@ -1,6 +1,7 @@
 import { LandingHeader, LandingHeaderMenuItem } from '@/components/landing';
 import ThemeSwitch from '@/components/shared/ThemeSwitch';
 import Image from 'next/image';
+import { siteLogos } from '@/data/config/logos';
 
 export const Header = ({ className }: { className?: string }) => {
   return (
@@ -10,13 +11,14 @@ export const Header = ({ className }: { className?: string }) => {
       withBackground
       variant="primary"
       logoComponent={
-        <div className="flex items-center text-primary-500 dark:text-primary-500 gap-3">
+        <div className="flex items-center gap-3 text-primary-600 dark:text-primary-400">
           <Image
-            src="/static/images/logo.png"
+            src={siteLogos.svg}
             alt="Mevolut logo"
-            width={200}
-            height={200}
-            className="h-8 w-8 rounded-full"
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0 invert dark:invert-0"
+            unoptimized
           />
           <span className="font-bold text-lg">Mevolut</span>
         </div>

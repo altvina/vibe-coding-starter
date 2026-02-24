@@ -109,6 +109,15 @@ export function SuperAdminModulePage() {
               Manage workspace masking
             </CustomLink>
           </Button>
+          <Button
+            asChild
+            variant="outline"
+            className={cn('rounded-full', dashboardTokens.focusRing)}
+          >
+            <CustomLink href="/dashboard/super-admin/sql">
+              SQL console
+            </CustomLink>
+          </Button>
         </div>
       </DashboardCard>
     </div>

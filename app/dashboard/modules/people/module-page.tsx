@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Mail, Plus, Save, Search, Trash2, User2 } from 'lucide-react';
+import { Briefcase, Globe, Link2, Lock, Mail, MapPin, Phone, Plus, Save, Search, Trash2, User2 } from 'lucide-react';
 
 import { Button } from '@/components/shared/ui/button';
 import { Input } from '@/components/shared/ui/input';
+import { Badge } from '@/components/shared/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -41,14 +42,35 @@ function initials(name: string) {
   return (parts[0]?.[0] ?? 'A').toUpperCase() + (parts[1]?.[0] ?? '').toUpperCase();
 }
 
+function splitDisplayName(displayName: string) {
+  const cleaned = displayName.trim().replace(/\s+/g, ' ');
+  if (!cleaned) return { firstName: '', lastName: '' };
+  const parts = cleaned.split(' ');
+  return { firstName: parts[0] ?? '', lastName: parts.slice(1).join(' ') };
+}
+
+function buildDisplayName(args: { firstName: string; lastName: string; fallback: string }) {
+  const combined = `${args.firstName.trim()} ${args.lastName.trim()}`.trim();
+  return combined || args.fallback;
+}
+
 const EMPTY_MEMBERS: Array<{
   id: string;
+  firstName?: string;
+  lastName?: string;
   displayName: string;
+  username?: string;
   role: 'client' | 'expert' | 'staff';
+  headline?: string;
   title?: string;
   bio?: string;
-  contactMask?: { email?: boolean; phone?: boolean };
+  location?: string;
+  phone?: string;
   email?: string;
+  linkedInUrl?: string;
+  website?: string;
+  skills?: string;
+  contactMask?: { email?: boolean; phone?: boolean };
 }> = [];
 
 const EMPTY_PROJECTS: Array<{ id: string; name: string }> = [];
@@ -69,10 +91,18 @@ function projectPillClasses(idx: number) {
 type MemberRole = WorkspaceMember['role'];
 
 type EditableFields = {
-  displayName: boolean;
+  firstName: boolean;
+  lastName: boolean;
+  username: boolean;
+  headline: boolean;
   title: boolean;
   bio: boolean;
+  location: boolean;
+  phone: boolean;
   email: boolean;
+  linkedInUrl: boolean;
+  website: boolean;
+  skills: boolean;
   role: boolean;
 };
 
@@ -82,29 +112,53 @@ function editableFieldsFor(args: { viewerRole: string; isSelf: boolean }): Edita
 
   if (isStaff) {
     return {
-      displayName: true,
+      firstName: true,
+      lastName: true,
+      username: true,
+      headline: true,
       title: true,
       bio: true,
+      location: true,
+      phone: true,
       email: true,
+      linkedInUrl: true,
+      website: true,
+      skills: true,
       role: true,
     };
   }
 
   if (args.isSelf) {
     return {
-      displayName: true,
+      firstName: true,
+      lastName: true,
+      username: true,
+      headline: true,
       title: true,
       bio: true,
+      location: true,
+      phone: true,
       email: true,
+      linkedInUrl: true,
+      website: true,
+      skills: true,
       role: false,
     };
   }
 
   return {
-    displayName: false,
+    firstName: false,
+    lastName: false,
+    username: false,
+    headline: false,
     title: false,
     bio: false,
+    location: false,
+    phone: false,
     email: false,
+    linkedInUrl: false,
+    website: false,
+    skills: false,
     role: false,
   };
 }
@@ -187,6 +241,7 @@ export function PeopleModulePage() {
       if (!q) return true;
       return (
         m.displayName.toLowerCase().includes(q) ||
+        (m.username ?? '').toLowerCase().includes(q) ||
         (m.title ?? '').toLowerCase().includes(q)
       );
     });
@@ -213,10 +268,18 @@ export function PeopleModulePage() {
 
   const [editDraft, setEditDraft] = useState<{
     id: string;
-    displayName: string;
+    firstName: string;
+    lastName: string;
+    username: string;
+    headline: string;
     title: string;
     bio: string;
+    location: string;
+    phone: string;
     email: string;
+    linkedInUrl: string;
+    website: string;
+    skills: string;
     role: MemberRole;
   } | null>(null);
 
@@ -227,13 +290,22 @@ export function PeopleModulePage() {
       return;
     }
 
+    const split = splitDisplayName(selected.displayName);
     setDialogMode('view');
     setEditDraft({
       id: selected.id,
-      displayName: selected.displayName,
+      firstName: selected.firstName ?? split.firstName,
+      lastName: selected.lastName ?? split.lastName,
+      username: selected.username ?? '',
+      headline: selected.headline ?? '',
       title: selected.title ?? '',
       bio: selected.bio ?? '',
+      location: selected.location ?? '',
+      phone: selected.phone ?? '',
       email: selected.email ?? '',
+      linkedInUrl: selected.linkedInUrl ?? '',
+      website: selected.website ?? '',
+      skills: selected.skills ?? '',
       role: selected.role,
     });
   }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -336,7 +408,14 @@ export function PeopleModulePage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold">{m.displayName}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate text-sm font-semibold">{m.displayName}</span>
+                        {m.username ? (
+                          <span className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>
+                            @{m.username}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className={cn('truncate text-xs', dashboardTokens.textSubtle)}>
                         {m.title ?? '—'} • {m.role.toUpperCase()}
                       </div>
@@ -397,255 +476,27 @@ export function PeopleModulePage() {
       </div>
 
       <Dialog open={Boolean(selected)} onOpenChange={() => setSelectedMemberId(null)}>
-        <DialogContent className="sm:rounded-2xl">
-          {selected ? (
-            <DialogHeader>
-              <DialogTitle>{selected.displayName}</DialogTitle>
-              <DialogDescription>
-                {selected.title ?? '—'} • {selected.role.toUpperCase()}
-              </DialogDescription>
-            </DialogHeader>
-          ) : null}
-
+        <DialogContent className="max-h-[90vh] w-full max-w-3xl overflow-y-auto p-0 sm:rounded-2xl">
           {selected && editDraft ? (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className={cn('text-sm', dashboardTokens.textMuted)}>
-                  {dialogMode === 'edit' ? 'Edit profile fields.' : 'Profile details.'}
-                </div>
-                <div className="flex items-center gap-2">
-                  {(() => {
-                    const isSelf = selected.id === currentMemberId;
-                    const fields = editableFieldsFor({ viewerRole, isSelf });
-                    const canEditAnyField = Object.values(fields).some(Boolean);
-
-                    return canEditAnyField ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn('rounded-full', dashboardTokens.focusRing)}
-                        onClick={() => setDialogMode((m) => (m === 'edit' ? 'view' : 'edit'))}
-                      >
-                        {dialogMode === 'edit' ? 'Cancel' : 'Edit'}
-                      </Button>
-                    ) : null;
-                  })()}
-
-                  {isStaff && selected.id !== currentMemberId ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={cn(
-                        'rounded-full border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 dark:border-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/20',
-                        dashboardTokens.focusRing,
-                      )}
-                      onClick={() => {
-                        const next = { ...store };
-                        if (next.created.some((m) => m.id === selected.id)) {
-                          next.created = next.created.filter((m) => m.id !== selected.id);
-                        } else {
-                          next.deleted = Array.from(new Set([...next.deleted, selected.id]));
-                        }
-                        delete next.updated[selected.id];
-                        persist(next);
-                        setSelectedMemberId(null);
-                      }}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className={cn('rounded-2xl border p-4', dashboardTokens.border)}>
-                <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                  Details
-                </div>
-                {(() => {
-                  const isSelf = selected.id === currentMemberId;
-                  const fields = editableFieldsFor({ viewerRole, isSelf });
-
-                  if (dialogMode !== 'edit') {
-                    return (
-                      <div className="mt-3 space-y-2">
-                        <div className="text-sm font-semibold">{selected.displayName}</div>
-                        <div className={cn('text-sm', dashboardTokens.textMuted)}>
-                          {selected.bio ?? 'Altvina-managed profile.'}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div className="space-y-2 sm:col-span-2">
-                        <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                          Display name
-                        </div>
-                        <Input
-                          value={editDraft.displayName}
-                          onChange={(e) =>
-                            setEditDraft({ ...editDraft, displayName: e.target.value })
-                          }
-                          disabled={!fields.displayName}
-                          className={cn('rounded-2xl', dashboardTokens.focusRing)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                          Title
-                        </div>
-                        <Input
-                          value={editDraft.title}
-                          onChange={(e) =>
-                            setEditDraft({ ...editDraft, title: e.target.value })
-                          }
-                          disabled={!fields.title}
-                          className={cn('rounded-2xl', dashboardTokens.focusRing)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                          Role
-                        </div>
-                        <Select
-                          value={editDraft.role}
-                          onValueChange={(value) =>
-                            setEditDraft({ ...editDraft, role: value as MemberRole })
-                          }
-                          disabled={!fields.role}
-                        >
-                          <SelectTrigger className={cn('rounded-2xl', dashboardTokens.focusRing)}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(['client', 'expert', 'staff'] as const).map((r) => (
-                              <SelectItem key={r} value={r}>
-                                {labelForMemberRole(r)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2 sm:col-span-2">
-                        <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                          Bio
-                        </div>
-                        <Textarea
-                          value={editDraft.bio}
-                          onChange={(e) => setEditDraft({ ...editDraft, bio: e.target.value })}
-                          disabled={!fields.bio}
-                          className={cn('rounded-2xl', dashboardTokens.focusRing)}
-                        />
-                      </div>
-
-                      <div className="space-y-2 sm:col-span-2">
-                        <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                          Email
-                        </div>
-                        <Input
-                          value={editDraft.email}
-                          onChange={(e) => setEditDraft({ ...editDraft, email: e.target.value })}
-                          disabled={!fields.email}
-                          className={cn('rounded-2xl', dashboardTokens.focusRing)}
-                        />
-                        <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                          Later we can lock fields per role (e.g., prevent email edits for non-staff).
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <Button
-                          type="button"
-                          className={cn(
-                            'h-10 rounded-full bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700',
-                            'dark:bg-primary-400 dark:text-slate-950 dark:hover:bg-primary-300',
-                            dashboardTokens.focusRing,
-                          )}
-                          onClick={() => {
-                            const patch: Partial<WorkspaceMember> = {
-                              displayName: editDraft.displayName.trim() || selected.displayName,
-                              title: editDraft.title.trim() || undefined,
-                              bio: editDraft.bio.trim() || undefined,
-                              email: editDraft.email.trim() || undefined,
-                              role: editDraft.role,
-                            };
-
-                            const next = { ...store, updated: { ...store.updated, [selected.id]: patch } };
-                            persist(next);
-                            setDialogMode('view');
-                          }}
-                        >
-                          <Save className="mr-2 h-4 w-4" />
-                          Save changes
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className={cn('rounded-2xl border p-4', dashboardTokens.border)}>
-                <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-                  Projects
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedProjectIds.length ? (
-                    selectedProjectIds.map((projectId) => {
-                      const p = projectById.get(projectId);
-                      if (!p) return null;
-                      const engagementRole =
-                        engagementRoleByMemberProject.get(`${selected.id}:${projectId}`) ?? '';
-                      return (
-                        <span
-                          key={projectId}
-                          className={cn(
-                            'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold',
-                            projectPillClasses(p.idx),
-                          )}
-                        >
-                          {p.name}
-                          {engagementRole ? (
-                            <span className="ml-2 rounded-full bg-black/5 px-2 py-0.5 text-xs font-semibold leading-none dark:bg-white/10">
-                              {engagementRole}
-                            </span>
-                          ) : null}
-                        </span>
-                      );
-                    })
-                  ) : (
-                    <div className={cn('text-sm', dashboardTokens.textMuted)}>
-                      No current project assignments.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <User2 className={cn('h-4 w-4', dashboardTokens.textSubtle)} />
-                  <span className={cn('text-sm', dashboardTokens.textMuted)}>
-                    Contact via Altvina
-                  </span>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={cn('rounded-full', dashboardTokens.focusRing)}
-                  disabled={!data.capabilities.canViewContactInfo || !selected.email}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  {data.capabilities.canViewContactInfo && selected.email
-                    ? selected.email
-                    : 'Email hidden'}
-                </Button>
-              </div>
-            </div>
+            <ProfileScreen
+              selected={selected}
+              editDraft={editDraft}
+              setEditDraft={setEditDraft}
+              dialogMode={dialogMode}
+              setDialogMode={setDialogMode}
+              currentMemberId={currentMemberId}
+              viewerRole={viewerRole}
+              isStaff={isStaff}
+              store={store}
+              persist={persist}
+              data={data}
+              projectById={projectById}
+              selectedProjectIds={selectedProjectIds}
+              engagementRoleByMemberProject={engagementRoleByMemberProject}
+              projectPillClasses={projectPillClasses}
+              setSelectedMemberId={setSelectedMemberId}
+              buildDisplayName={buildDisplayName}
+            />
           ) : null}
         </DialogContent>
       </Dialog>
@@ -676,6 +527,606 @@ export function PeopleModulePage() {
   );
 }
 
+type ProfileScreenProps = {
+  selected: WorkspaceMember;
+  editDraft: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    username: string;
+    headline: string;
+    title: string;
+    bio: string;
+    location: string;
+    phone: string;
+    email: string;
+    linkedInUrl: string;
+    website: string;
+    skills: string;
+    role: MemberRole;
+  };
+  setEditDraft: React.Dispatch<React.SetStateAction<ProfileScreenProps['editDraft'] | null>>;
+  dialogMode: 'view' | 'edit';
+  setDialogMode: (m: 'view' | 'edit') => void;
+  currentMemberId: string | null;
+  viewerRole: string;
+  isStaff: boolean;
+  store: ReturnType<typeof defaultPeopleStore>;
+  persist: (next: ReturnType<typeof defaultPeopleStore>) => void;
+  data: NonNullable<ReturnType<typeof useDashboardData>['data']>;
+  projectById: Map<string, { id: string; name: string; idx: number }>;
+  selectedProjectIds: string[];
+  engagementRoleByMemberProject: Map<string, string>;
+  projectPillClasses: (idx: number) => string;
+  setSelectedMemberId: (id: string | null) => void;
+  buildDisplayName: (args: { firstName: string; lastName: string; fallback: string }) => string;
+};
+
+function VisibilityChip({ state }: { state: 'public' | 'private' | 'unset' }) {
+  if (state === 'unset') {
+    return (
+      <Badge variant="outline" className="border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300">
+        Not set
+      </Badge>
+    );
+  }
+  if (state === 'private') {
+    return (
+      <Badge variant="outline" className="border-amber-200 text-amber-800 dark:border-amber-900/40 dark:text-amber-200">
+        <Lock className="mr-1 h-3.5 w-3.5" />
+        Private
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-100">
+      <Globe className="mr-1 h-3.5 w-3.5" />
+      Public
+    </Badge>
+  );
+}
+
+function ProfileScreen({
+  selected,
+  editDraft,
+  setEditDraft,
+  dialogMode,
+  setDialogMode,
+  currentMemberId,
+  viewerRole,
+  isStaff,
+  store,
+  persist,
+  data,
+  projectById,
+  selectedProjectIds,
+  engagementRoleByMemberProject,
+  projectPillClasses,
+  setSelectedMemberId,
+  buildDisplayName,
+}: ProfileScreenProps) {
+  const isSelf = selected.id === currentMemberId;
+  const fields = editableFieldsFor({ viewerRole, isSelf });
+  const canEdit = Object.values(fields).some(Boolean);
+
+  return (
+    <div className="flex flex-col">
+      {/* Hero / cover */}
+      <div className="relative h-24 shrink-0 rounded-t-2xl bg-gradient-to-br from-primary-500/20 via-slate-100 to-secondary-500/20 dark:from-primary-600/30 dark:via-slate-800 dark:to-secondary-600/30 sm:h-28" />
+      <div className="relative px-5 pb-5 sm:px-6">
+        <Avatar className="-mt-12 h-24 w-24 border-4 border-white shadow-lg dark:border-slate-900 sm:-mt-14 sm:h-28 sm:w-28">
+          <AvatarFallback className="text-2xl font-semibold sm:text-3xl">
+            {initials(selected.displayName)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-2xl">
+              {selected.displayName}
+            </h2>
+            {(selected.headline || selected.title) && (
+              <p className={cn('mt-0.5 text-sm font-medium', dashboardTokens.textMuted)}>
+                {selected.headline || selected.title}
+              </p>
+            )}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {selected.username ? (
+                <span className={cn('text-sm', dashboardTokens.textSubtle)}>@{selected.username}</span>
+              ) : null}
+              <Badge variant="secondary" className="text-xs">
+                {labelForMemberRole(selected.role)}
+              </Badge>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {canEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn('rounded-full', dashboardTokens.focusRing)}
+                onClick={() => setDialogMode(dialogMode === 'edit' ? 'view' : 'edit')}
+              >
+                {dialogMode === 'edit' ? 'Cancel' : 'Edit profile'}
+              </Button>
+            )}
+            {isStaff && selected.id !== currentMemberId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'rounded-full border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-900/20',
+                  dashboardTokens.focusRing,
+                )}
+                onClick={() => {
+                  const next = { ...store };
+                  if (next.created.some((m) => m.id === selected.id)) {
+                    next.created = next.created.filter((m) => m.id !== selected.id);
+                  } else {
+                    next.deleted = Array.from(new Set([...next.deleted, selected.id]));
+                  }
+                  delete next.updated[selected.id];
+                  persist(next);
+                  setSelectedMemberId(null);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-col gap-4 px-5 pb-6 sm:px-6">
+        {dialogMode === 'edit' ? (
+          <ProfileEditForm
+            editDraft={editDraft}
+            setEditDraft={setEditDraft}
+            selected={selected}
+            fields={fields}
+            persist={persist}
+            store={store}
+            setDialogMode={setDialogMode}
+            buildDisplayName={buildDisplayName}
+          />
+        ) : (
+          <ProfileViewSections
+            selected={selected}
+            data={data}
+            projectById={projectById}
+            selectedProjectIds={selectedProjectIds}
+            engagementRoleByMemberProject={engagementRoleByMemberProject}
+            projectPillClasses={projectPillClasses}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProfileViewSections({
+  selected,
+  data,
+  projectById,
+  selectedProjectIds,
+  engagementRoleByMemberProject,
+  projectPillClasses,
+}: {
+  selected: WorkspaceMember;
+  data: NonNullable<ReturnType<typeof useDashboardData>['data']>;
+  projectById: Map<string, { id: string; name: string; idx: number }>;
+  selectedProjectIds: string[];
+  engagementRoleByMemberProject: Map<string, string>;
+  projectPillClasses: (idx: number) => string;
+}) {
+  const nameVisibility = selected.fieldMask?.name ? 'private' : 'public';
+  const titleVisibility =
+    selected.fieldMask?.title ? 'private' : selected.title ? 'public' : 'unset';
+  const bioVisibility =
+    selected.fieldMask?.bio ? 'private' : selected.bio ? 'public' : 'unset';
+  const emailVisibility =
+    !selected.email ? 'unset' : !data.capabilities.canViewContactInfo || selected.contactMask?.email ? 'private' : 'public';
+
+  return (
+    <>
+      {selected.bio ? (
+        <section className={cn('rounded-2xl border p-4', dashboardTokens.border, dashboardTokens.surface)}>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">About</h3>
+          <p className={cn('mt-2 text-sm leading-relaxed', dashboardTokens.textMuted)}>{selected.bio}</p>
+          <div className="mt-2 flex justify-end">
+            <VisibilityChip state={bioVisibility} />
+          </div>
+        </section>
+      ) : null}
+
+      <section className={cn('rounded-2xl border p-4', dashboardTokens.border, dashboardTokens.surface)}>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-50">
+          <Briefcase className="h-4 w-4" />
+          Contact & info
+        </h3>
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Full name</span>
+            <VisibilityChip state={nameVisibility} />
+          </div>
+          {selected.title ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Title</span>
+              <VisibilityChip state={titleVisibility} />
+            </div>
+          ) : null}
+          {selected.location ? (
+            <div className="flex items-center gap-2">
+              <MapPin className={cn('h-4 w-4', dashboardTokens.textSubtle)} />
+              <span className="text-sm">{selected.location}</span>
+            </div>
+          ) : null}
+          {data.capabilities.canViewContactInfo && selected.email ? (
+            <a
+              href={`mailto:${selected.email}`}
+              className="flex items-center gap-2 text-sm text-primary-600 hover:underline dark:text-primary-400"
+            >
+              <Mail className="h-4 w-4" />
+              {selected.email}
+            </a>
+          ) : selected.email ? (
+            <div className="flex items-center gap-2">
+              <Mail className={cn('h-4 w-4', dashboardTokens.textSubtle)} />
+              <VisibilityChip state={emailVisibility} />
+            </div>
+          ) : null}
+          {data.capabilities.canViewContactInfo && selected.phone ? (
+            <a
+              href={`tel:${selected.phone}`}
+              className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
+            >
+              <Phone className="h-4 w-4" />
+              {selected.phone}
+            </a>
+          ) : null}
+          {selected.linkedInUrl ? (
+            <a
+              href={selected.linkedInUrl.startsWith('http') ? selected.linkedInUrl : `https://${selected.linkedInUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-primary-600 hover:underline dark:text-primary-400"
+            >
+              <Link2 className="h-4 w-4" />
+              LinkedIn
+            </a>
+          ) : null}
+          {selected.website ? (
+            <a
+              href={selected.website.startsWith('http') ? selected.website : `https://${selected.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-primary-600 hover:underline dark:text-primary-400"
+            >
+              <Globe className="h-4 w-4" />
+              {selected.website}
+            </a>
+          ) : null}
+        </div>
+      </section>
+
+      {selected.skills ? (
+        <section className={cn('rounded-2xl border p-4', dashboardTokens.border, dashboardTokens.surface)}>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Skills & expertise</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {selected.skills.split(/[,;]/).map((s, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'rounded-full bg-slate-100 px-3 py-1 text-xs font-medium dark:bg-slate-800',
+                  dashboardTokens.text,
+                )}
+              >
+                {s.trim()}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className={cn('rounded-2xl border p-4', dashboardTokens.border, dashboardTokens.surface)}>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-50">
+          <Briefcase className="h-4 w-4" />
+          Projects
+        </h3>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {selectedProjectIds.length ? (
+            selectedProjectIds.map((projectId) => {
+              const p = projectById.get(projectId);
+              if (!p) return null;
+              const engagementRole = engagementRoleByMemberProject.get(`${selected.id}:${projectId}`) ?? '';
+              return (
+                <span
+                  key={projectId}
+                  className={cn(
+                    'inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold',
+                    projectPillClasses(p.idx),
+                  )}
+                >
+                  {p.name}
+                  {engagementRole ? (
+                    <span className="ml-2 rounded-full bg-black/5 px-2 py-0.5 text-xs leading-none dark:bg-white/10">
+                      {engagementRole}
+                    </span>
+                  ) : null}
+                </span>
+              );
+            })
+          ) : (
+            <p className={cn('text-sm', dashboardTokens.textMuted)}>No project assignments yet.</p>
+          )}
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <User2 className={cn('h-4 w-4', dashboardTokens.textSubtle)} />
+          <span className={cn('text-sm', dashboardTokens.textMuted)}>Contact via Altvina</span>
+        </div>
+        {data.capabilities.canViewContactInfo && selected.email ? (
+          <Button type="button" variant="outline" size="sm" className={cn('rounded-full', dashboardTokens.focusRing)} asChild>
+            <a href={`mailto:${selected.email}`}>
+              <Mail className="mr-2 h-4 w-4" />
+              {selected.email}
+            </a>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className={cn('rounded-full', dashboardTokens.focusRing)}
+            disabled
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Email hidden
+          </Button>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ProfileEditForm({
+  editDraft,
+  setEditDraft,
+  selected,
+  fields,
+  persist,
+  store,
+  setDialogMode,
+  buildDisplayName,
+}: {
+  editDraft: ProfileScreenProps['editDraft'];
+  setEditDraft: ProfileScreenProps['setEditDraft'];
+  selected: WorkspaceMember;
+  fields: EditableFields;
+  persist: (next: ReturnType<typeof defaultPeopleStore>) => void;
+  store: ReturnType<typeof defaultPeopleStore>;
+  setDialogMode: (m: 'view' | 'edit') => void;
+  buildDisplayName: (args: { firstName: string; lastName: string; fallback: string }) => string;
+}) {
+  return (
+    <div className="space-y-4">
+      <section className={cn('rounded-2xl border p-4', dashboardTokens.border, dashboardTokens.surface)}>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Basic info</h3>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>First name</label>
+            <Input
+              value={editDraft.firstName}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, firstName: e.target.value } : d))}
+              disabled={!fields.firstName}
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Last name</label>
+            <Input
+              value={editDraft.lastName}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, lastName: e.target.value } : d))}
+              disabled={!fields.lastName}
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Username</label>
+            <div className="flex items-center gap-2">
+              <span className={cn('text-sm', dashboardTokens.textSubtle)}>@</span>
+              <Input
+                value={editDraft.username}
+                onChange={(e) =>
+                  setEditDraft((d) =>
+                    d ? { ...d, username: e.target.value.replace(/^@/, '').replace(/[^a-z0-9._-]/gi, (c) => (c === ' ' ? '.' : '')) } : d
+                  )
+                }
+                disabled={!fields.username}
+                placeholder="jordan.taylor"
+                className={cn('rounded-xl', dashboardTokens.focusRing)}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Headline</label>
+            <Input
+              value={editDraft.headline}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, headline: e.target.value } : d))}
+              disabled={!fields.headline}
+              placeholder="e.g. Fractional COO · Ops & automation"
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Title</label>
+            <Input
+              value={editDraft.title}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, title: e.target.value } : d))}
+              disabled={!fields.title}
+              placeholder="e.g. Ops Lead"
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Role</label>
+            <Select
+              value={editDraft.role}
+              onValueChange={(v) => setEditDraft((d) => (d ? { ...d, role: v as MemberRole } : d))}
+              disabled={!fields.role}
+            >
+              <SelectTrigger className={cn('rounded-xl', dashboardTokens.focusRing)}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(['client', 'expert', 'staff'] as const).map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {labelForMemberRole(r)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+
+      <section className={cn('rounded-2xl border p-4', dashboardTokens.border, dashboardTokens.surface)}>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">About & contact</h3>
+        <div className="mt-3 space-y-3">
+          <div className="space-y-1.5">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Bio</label>
+            <Textarea
+              value={editDraft.bio}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, bio: e.target.value } : d))}
+              disabled={!fields.bio}
+              placeholder="Short professional summary…"
+              rows={3}
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Location</label>
+              <Input
+                value={editDraft.location}
+                onChange={(e) => setEditDraft((d) => (d ? { ...d, location: e.target.value } : d))}
+                disabled={!fields.location}
+                placeholder="e.g. San Francisco, CA"
+                className={cn('rounded-xl', dashboardTokens.focusRing)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Phone</label>
+              <Input
+                value={editDraft.phone}
+                onChange={(e) => setEditDraft((d) => (d ? { ...d, phone: e.target.value } : d))}
+                disabled={!fields.phone}
+                placeholder="+1 234 567 8900"
+                className={cn('rounded-xl', dashboardTokens.focusRing)}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Email</label>
+            <Input
+              type="email"
+              value={editDraft.email}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, email: e.target.value } : d))}
+              disabled={!fields.email}
+              placeholder="name@company.com"
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>LinkedIn URL</label>
+            <Input
+              value={editDraft.linkedInUrl}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, linkedInUrl: e.target.value } : d))}
+              disabled={!fields.linkedInUrl}
+              placeholder="https://linkedin.com/in/username"
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Website</label>
+            <Input
+              value={editDraft.website}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, website: e.target.value } : d))}
+              disabled={!fields.website}
+              placeholder="https://example.com"
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>Skills</label>
+            <Input
+              value={editDraft.skills}
+              onChange={(e) => setEditDraft((d) => (d ? { ...d, skills: e.target.value } : d))}
+              disabled={!fields.skills}
+              placeholder="e.g. Operations, Strategy, Analytics"
+              className={cn('rounded-xl', dashboardTokens.focusRing)}
+            />
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          className={cn(
+            'rounded-full bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700',
+            'dark:bg-primary-400 dark:text-slate-950 dark:hover:bg-primary-300',
+            dashboardTokens.focusRing,
+          )}
+          onClick={() => {
+            const displayName = buildDisplayName({
+              firstName: editDraft.firstName,
+              lastName: editDraft.lastName,
+              fallback: selected.displayName,
+            });
+            const usernameTrimmed = editDraft.username.trim().toLowerCase().replace(/\s+/g, '.');
+            const patch: Partial<WorkspaceMember> = {
+              firstName: editDraft.firstName.trim() || undefined,
+              lastName: editDraft.lastName.trim() || undefined,
+              displayName,
+              username: usernameTrimmed || undefined,
+              headline: editDraft.headline.trim() || undefined,
+              title: editDraft.title.trim() || undefined,
+              bio: editDraft.bio.trim() || undefined,
+              location: editDraft.location.trim() || undefined,
+              phone: editDraft.phone.trim() || undefined,
+              email: editDraft.email.trim() || undefined,
+              linkedInUrl: editDraft.linkedInUrl.trim() || undefined,
+              website: editDraft.website.trim() || undefined,
+              skills: editDraft.skills.trim() || undefined,
+              role: editDraft.role,
+            };
+            const next = { ...store, updated: { ...store.updated, [selected.id]: patch } };
+            persist(next);
+            setDialogMode('view');
+          }}
+        >
+          <Save className="mr-2 h-4 w-4" />
+          Save changes
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function slugUsername(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '.')
+    .replace(/[^a-z0-9._-]/g, '');
+}
+
 function CreateMemberForm({
   onCancel,
   onCreate,
@@ -683,24 +1134,68 @@ function CreateMemberForm({
   onCancel: () => void;
   onCreate: (member: WorkspaceMember) => void;
 }) {
-  const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
+  const [headline, setHeadline] = useState('');
   const [title, setTitle] = useState('');
   const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [linkedInUrl, setLinkedInUrl] = useState('');
+  const [website, setWebsite] = useState('');
+  const [skills, setSkills] = useState('');
   const [role, setRole] = useState<MemberRole>('client');
+
+  const suggestedUsername =
+    firstName.trim() || lastName.trim()
+      ? slugUsername(`${firstName} ${lastName}`.trim())
+      : '';
 
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
+            First name
+          </div>
+          <Input
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className={cn('rounded-2xl', dashboardTokens.focusRing)}
+            placeholder="First"
+          />
+        </div>
+        <div className="space-y-2">
+          <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
+            Last name
+          </div>
+          <Input
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className={cn('rounded-2xl', dashboardTokens.focusRing)}
+            placeholder="Last"
+          />
+        </div>
+      </div>
+
       <div className="space-y-2">
         <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-          Display name
+          Username
         </div>
-        <Input
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          className={cn('rounded-2xl', dashboardTokens.focusRing)}
-          placeholder="Full name"
-        />
+        <div className="flex items-center gap-2">
+          <span className={cn('text-xs', dashboardTokens.textSubtle)}>@</span>
+          <Input
+            value={username}
+            onChange={(e) => setUsername(e.target.value.replace(/^@/, '').replace(/[^a-z0-9._-]/gi, (c) => (c === ' ' ? '.' : '')))}
+            className={cn('rounded-2xl', dashboardTokens.focusRing)}
+            placeholder={suggestedUsername || 'e.g. jordan.taylor'}
+          />
+        </div>
+        <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+          Optional. Suggested from name; used for @mentions and profile links.
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -733,6 +1228,30 @@ function CreateMemberForm({
             placeholder="e.g., Ops Lead"
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
+          Headline
+        </div>
+        <Input
+          value={headline}
+          onChange={(e) => setHeadline(e.target.value)}
+          className={cn('rounded-2xl', dashboardTokens.focusRing)}
+          placeholder="e.g., Fractional COO · Ops & automation"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <div className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
+          Location
+        </div>
+        <Input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          className={cn('rounded-2xl', dashboardTokens.focusRing)}
+          placeholder="e.g., San Francisco, CA"
+        />
       </div>
 
       <div className="space-y-2">
@@ -775,16 +1294,27 @@ function CreateMemberForm({
             'dark:bg-primary-400 dark:text-slate-950 dark:hover:bg-primary-300',
             dashboardTokens.focusRing,
           )}
-          disabled={displayName.trim().length < 2}
+          disabled={firstName.trim().length < 1 || lastName.trim().length < 1}
           onClick={() => {
             const nowIso = new Date().toISOString();
+            const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+            const finalUsername = (username.trim() || suggestedUsername).trim().toLowerCase() || undefined;
             onCreate({
               id: createMemberId(nowIso),
-              displayName: displayName.trim(),
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              displayName,
+              username: finalUsername,
+              headline: headline.trim() || undefined,
               role,
               title: title.trim() || undefined,
               bio: bio.trim() || undefined,
+              location: location.trim() || undefined,
+              phone: phone.trim() || undefined,
               email: email.trim() || undefined,
+              linkedInUrl: linkedInUrl.trim() || undefined,
+              website: website.trim() || undefined,
+              skills: skills.trim() || undefined,
               contactMask: {},
             });
           }}

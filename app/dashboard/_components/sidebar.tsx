@@ -10,15 +10,7 @@ import { cn } from '@/lib/utils';
 
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
-import { AvatarGroup } from '@/app/dashboard/_components/avatar-group';
 import { SidebarNav } from '@/app/dashboard/_components/sidebar-nav';
-
-const sidebarAvatars = [
-  { id: 'a1', initials: 'AR' },
-  { id: 'a2', initials: 'LS' },
-  { id: 'a3', initials: 'KT' },
-  { id: 'a4', initials: 'JM' },
-];
 
 type SidebarAssistant = {
   greeting: string;
@@ -160,38 +152,6 @@ export function Sidebar({
         >
           <Wand2 className="h-5 w-5" />
         </Button>
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <AvatarGroup avatars={sidebarAvatars} overflowCount={3} />
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn(
-              'h-10 w-10 rounded-xl',
-              dashboardTokens.surface,
-              dashboardTokens.border,
-              dashboardTokens.focusRing,
-            )}
-            aria-label="Invite experts"
-          >
-            <span className="text-sm font-semibold">+</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn(
-              'h-10 w-10 rounded-xl',
-              dashboardTokens.surface,
-              dashboardTokens.border,
-              dashboardTokens.focusRing,
-            )}
-            aria-label="View activity"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
       </div>
 
       {navItems?.length ? (

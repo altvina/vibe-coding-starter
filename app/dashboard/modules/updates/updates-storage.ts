@@ -29,12 +29,14 @@ export function saveStoredUpdates(workspaceId: string, value: StoredWorkspaceUpd
 
 export function createLocalUpdate(args: {
   authorId: string;
+  authorName?: string;
   body: string;
   nowIso: string;
 }): WorkspaceUpdate {
   return {
     id: `local-u-${args.nowIso}`,
     authorId: args.authorId,
+    authorName: args.authorName,
     createdAt: args.nowIso,
     body: args.body,
     comments: [],
@@ -43,14 +45,23 @@ export function createLocalUpdate(args: {
 
 export function createLocalComment(args: {
   authorId: string;
+  authorName?: string;
   body: string;
   nowIso: string;
 }): WorkspaceUpdateComment {
   return {
     id: `local-c-${args.nowIso}`,
     authorId: args.authorId,
+    authorName: args.authorName,
     createdAt: args.nowIso,
     body: args.body,
   };
+}
+
+export function prependStoredUpdate(workspaceId: string, update: WorkspaceUpdate) {
+  const current = loadStoredUpdates(workspaceId)?.updates ?? [];
+  const next = [update, ...current.filter((u) => u.id !== update.id)];
+  saveStoredUpdates(workspaceId, { updates: next });
+  return next;
 }
 

@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { MessageCircle, Send } from 'lucide-react';
+import { Check, MessageCircle, Send, UsersRound } from 'lucide-react';
 
 import { Button } from '@/components/shared/ui/button';
+import { Checkbox } from '@/components/shared/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/shared/ui/popover';
 import { Textarea } from '@/components/shared/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/shared/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -17,6 +19,7 @@ import {
   createLocalComment,
   createLocalUpdate,
   loadStoredUpdates,
+  prependStoredUpdate,
   saveStoredUpdates,
 } from '@/app/dashboard/modules/updates/updates-storage';
 
@@ -44,11 +47,17 @@ export function UpdatesModulePage() {
   const [body, setBody] = useState('');
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [localUpdates, setLocalUpdates] = useState<WorkspaceUpdate[]>([]);
+  const [targetWorkspaceIds, setTargetWorkspaceIds] = useState<string[]>([]);
 
   useEffect(() => {
     const stored = loadStoredUpdates(activeWorkspaceId);
     setLocalUpdates(stored?.updates ?? []);
   }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    setTargetWorkspaceIds([activeWorkspaceId]);
+  }, [activeWorkspaceId]);
+
   const members = data?.workspace.members ?? EMPTY_MEMBERS;
   const seedUpdates = data?.workspace.updates ?? EMPTY_UPDATES;
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
@@ -73,6 +82,32 @@ export function UpdatesModulePage() {
   function persistUpdates(next: typeof localUpdates) {
     setLocalUpdates(next);
     saveStoredUpdates(activeWorkspaceId, { updates: next });
+  }
+
+  const workspaces = useMemo(() => {
+    const list = data?.workspaces ?? [];
+    return list.length
+      ? list
+      : [{ id: activeWorkspaceId, name: 'This workspace', clientLabel: 'This workspace' }];
+  }, [activeWorkspaceId, data?.workspaces]);
+  const workspaceById = useMemo(() => new Map(workspaces.map((w) => [w.id, w] as const)), [workspaces]);
+
+  const targetLabel = useMemo(() => {
+    const targets = targetWorkspaceIds.length ? targetWorkspaceIds : [activeWorkspaceId];
+    if (targets.length === workspaces.length) return 'All teams';
+    if (targets.length === 1) {
+      return workspaceById.get(targets[0])?.name ?? 'This team';
+    }
+    return `${targets.length} teams`;
+  }, [activeWorkspaceId, targetWorkspaceIds, workspaceById, workspaces.length]);
+
+  function toggleTarget(workspaceId: string) {
+    setTargetWorkspaceIds((prev) => {
+      if (prev.includes(workspaceId)) {
+        return prev.filter((id) => id !== workspaceId);
+      }
+      return [...prev, workspaceId];
+    });
   }
 
   if (!data) {
@@ -100,20 +135,129 @@ export function UpdatesModulePage() {
               className={cn('min-h-24 rounded-2xl', dashboardTokens.focusRing)}
             />
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                {canPost ? 'Use this for decisions, handoffs, and weekly snapshots.' : 'You can still read and comment (if enabled).'}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+                  {canPost
+                    ? 'Use this for decisions, handoffs, and weekly snapshots.'
+                    : 'You can still read and comment (if enabled).'}
+                </div>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn('h-9 rounded-full px-3 text-xs font-semibold', dashboardTokens.focusRing)}
+                      disabled={!canPost}
+                    >
+                      <UsersRound className="mr-2 h-4 w-4" />
+                      Post to: {targetLabel}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className={cn('w-80 rounded-2xl border p-3', dashboardTokens.surface, dashboardTokens.border)}
+                  >
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold">Choose teams</div>
+                        <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+                          Your update will appear on the selected team walls.
+                        </div>
+                      </div>
+
+                      <div className="max-h-56 space-y-1 overflow-auto pr-1">
+                        {workspaces.map((w) => {
+                          const isActive = w.id === activeWorkspaceId;
+                          const checked = targetWorkspaceIds.includes(w.id);
+                          return (
+                            <button
+                              key={w.id}
+                              type="button"
+                              onClick={() => toggleTarget(w.id)}
+                              className={cn(
+                                'flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-colors',
+                                dashboardTokens.border,
+                                dashboardTokens.focusRing,
+                                checked
+                                  ? 'border-primary-600 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/10'
+                                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/40',
+                              )}
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() => toggleTarget(w.id)}
+                                onClick={(event) => event.stopPropagation()}
+                                aria-label={`Post to ${w.name}`}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate font-medium">
+                                  {w.name}
+                                  {isActive ? (
+                                    <span className={cn('ml-2 text-xs font-semibold', dashboardTokens.textSubtle)}>
+                                      Current
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className={cn('truncate text-xs', dashboardTokens.textSubtle)}>
+                                  {w.clientLabel}
+                                </div>
+                              </div>
+                              {checked ? <Check className={cn('h-4 w-4', dashboardTokens.textSubtle)} /> : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className={cn('rounded-full', dashboardTokens.focusRing)}
+                          onClick={() => setTargetWorkspaceIds(workspaces.map((w) => w.id))}
+                        >
+                          All teams
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className={cn('rounded-full', dashboardTokens.focusRing)}
+                          onClick={() => setTargetWorkspaceIds([activeWorkspaceId])}
+                        >
+                          Only current
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
+
               <Button
                 type="button"
                 className="rounded-full"
-                disabled={!canPost || body.trim().length < 3}
+                disabled={!canPost || body.trim().length < 3 || targetWorkspaceIds.length === 0}
                 onClick={() => {
                   const nowIso = new Date().toISOString();
-                  const next = [
-                    createLocalUpdate({ authorId: currentAuthorId, body: body.trim(), nowIso }),
-                    ...localUpdates,
-                  ];
-                  persistUpdates(next);
+                  const authorName =
+                    memberById.get(currentAuthorId)?.displayName ?? data.user.name ?? 'You';
+                  const update = createLocalUpdate({
+                    authorId: currentAuthorId,
+                    authorName,
+                    body: body.trim(),
+                    nowIso,
+                  });
+
+                  const targets = targetWorkspaceIds.length ? targetWorkspaceIds : [activeWorkspaceId];
+                  targets.forEach((workspaceId) => {
+                    if (workspaceId === activeWorkspaceId) {
+                      persistUpdates([update, ...localUpdates]);
+                      return;
+                    }
+                    prependStoredUpdate(workspaceId, update);
+                  });
+
                   setBody('');
                 }}
               >
@@ -129,7 +273,8 @@ export function UpdatesModulePage() {
         <DashboardCard title="Feed">
           <div className="space-y-4">
             {feed.map((u) => {
-              const author = memberById.get(u.authorId)?.displayName ?? 'Unknown';
+              const author =
+                memberById.get(u.authorId)?.displayName ?? u.authorName ?? 'Unknown';
               const authorInitials = initials(author);
               const draft = commentDrafts[u.id] ?? '';
 
@@ -163,7 +308,10 @@ export function UpdatesModulePage() {
                   {u.comments.length ? (
                     <div className="mt-4 space-y-2">
                       {u.comments.map((c) => {
-                        const cAuthor = memberById.get(c.authorId)?.displayName ?? 'Unknown';
+                        const cAuthor =
+                          memberById.get(c.authorId)?.displayName ??
+                          c.authorName ??
+                          'Unknown';
                         return (
                           <div key={c.id} className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-900">
                             <div className="flex items-center justify-between gap-2">
@@ -198,8 +346,11 @@ export function UpdatesModulePage() {
                       disabled={!canComment || draft.trim().length < 2}
                       onClick={() => {
                         const nowIso = new Date().toISOString();
+                        const authorName =
+                          memberById.get(currentAuthorId)?.displayName ?? data.user.name ?? 'You';
                         const comment = createLocalComment({
                           authorId: currentAuthorId,
+                          authorName,
                           body: draft.trim(),
                           nowIso,
                         });

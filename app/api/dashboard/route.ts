@@ -49,11 +49,21 @@ type WorkspaceSeed = {
   clientLabel: string;
   members: Array<{
     id: string;
+    firstName?: string;
+    lastName?: string;
     displayName: string;
+    username?: string;
     role: 'client' | 'expert' | 'staff';
+    headline?: string;
     title?: string;
     bio?: string;
+    location?: string;
+    phone?: string;
     email?: string;
+    linkedInUrl?: string;
+    website?: string;
+    skills?: string;
+    fieldMask?: { name?: boolean; title?: boolean; bio?: boolean };
   }>;
   updates: Array<{
     id: string;
@@ -87,7 +97,10 @@ const workspaceSeeds: WorkspaceSeed[] = [
     members: [
       {
         id: 'm-super-1',
+        firstName: 'Avery',
+        lastName: 'Admin',
         displayName: 'Avery Admin',
+        username: 'avery.admin',
         role: 'staff',
         title: 'Super Admin',
         bio: 'Platform-wide administrator. Keep at least two super admins as backups.',
@@ -95,7 +108,10 @@ const workspaceSeeds: WorkspaceSeed[] = [
       },
       {
         id: 'm-super-2',
+        firstName: 'Morgan',
+        lastName: 'Root',
         displayName: 'Morgan Root',
+        username: 'morgan.root',
         role: 'staff',
         title: 'Super Admin',
         bio: 'Backup platform admin (simulation).',
@@ -122,7 +138,10 @@ const workspaceSeeds: WorkspaceSeed[] = [
     members: [
       {
         id: 'm-client-1',
+        firstName: 'Jordan',
+        lastName: 'Taylor',
         displayName: 'Jordan Taylor',
+        username: 'jordan.taylor',
         role: 'client',
         title: 'Owner',
         bio: 'Primary decision maker for the engagement.',
@@ -130,7 +149,10 @@ const workspaceSeeds: WorkspaceSeed[] = [
       },
       {
         id: 'm-client-2',
+        firstName: 'Sam',
+        lastName: 'Lee',
         displayName: 'Sam Lee',
+        username: 'sam.lee',
         role: 'client',
         title: 'Ops Lead',
         bio: 'Owns day-to-day execution and handoffs.',
@@ -138,19 +160,31 @@ const workspaceSeeds: WorkspaceSeed[] = [
       },
       {
         id: 'm-expert-1',
+        firstName: 'Alex',
+        lastName: 'Morgan',
         displayName: 'Alex Morgan',
+        username: 'alex.morgan',
         role: 'expert',
+        headline: 'Fractional COO · Ops & process automation',
         title: 'Fractional COO',
-        bio: 'Specializes in ops cadence + automation.',
+        bio: 'Specializes in ops cadence + automation. 10+ years building teams and systems that scale.',
+        location: 'San Francisco, CA',
         email: 'expert@altvina.pro',
+        skills: 'Operations, Strategy, Process design, Analytics',
       },
       {
         id: 'm-staff-1',
+        firstName: 'Olivia',
+        lastName: 'Rodrigo',
         displayName: 'Olivia Rodrigo',
+        username: 'olivia.rodrigo',
         role: 'staff',
+        headline: 'Program Lead · Client success & delivery',
         title: 'Altvina Program Lead',
-        bio: 'Manages scope, expectations, and comms.',
+        bio: 'Manages scope, expectations, and comms. Keeps engagements on track and stakeholders aligned.',
+        location: 'New York, NY',
         email: 'olivia@altvina.com',
+        skills: 'Project management, Client relations, Operations',
       },
     ],
     updates: [
@@ -226,9 +260,9 @@ const workspaceSeeds: WorkspaceSeed[] = [
     name: 'Horizon Health',
     clientLabel: 'Horizon Health',
     members: [
-      { id: 'm-client-3', displayName: 'Casey Nguyen', role: 'client', title: 'Director', email: 'casey@horizon.example' },
-      { id: 'm-expert-2', displayName: 'Taylor Kim', role: 'expert', title: 'Growth Ops', email: 'taylor@altvina.pro' },
-      { id: 'm-staff-1', displayName: 'Olivia Rodrigo', role: 'staff', title: 'Altvina Program Lead', email: 'olivia@altvina.com' },
+      { id: 'm-client-3', firstName: 'Casey', lastName: 'Nguyen', displayName: 'Casey Nguyen', username: 'casey.nguyen', role: 'client', title: 'Director', email: 'casey@horizon.example' },
+      { id: 'm-expert-2', firstName: 'Taylor', lastName: 'Kim', displayName: 'Taylor Kim', username: 'taylor.kim', role: 'expert', title: 'Growth Ops', email: 'taylor@altvina.pro' },
+      { id: 'm-staff-1', firstName: 'Olivia', lastName: 'Rodrigo', displayName: 'Olivia Rodrigo', username: 'olivia.rodrigo', role: 'staff', title: 'Altvina Program Lead', email: 'olivia@altvina.com' },
     ],
     updates: [
       {
@@ -257,9 +291,9 @@ const workspaceSeeds: WorkspaceSeed[] = [
     name: 'Vertex Retail',
     clientLabel: 'Vertex Retail',
     members: [
-      { id: 'm-client-4', displayName: 'Riley Park', role: 'client', title: 'VP Ops', email: 'riley@vertex.example' },
-      { id: 'm-expert-1', displayName: 'Alex Morgan', role: 'expert', title: 'Fractional COO', email: 'expert@altvina.pro' },
-      { id: 'm-staff-2', displayName: 'Jordan Smith', role: 'staff', title: 'Altvina Ops', email: 'ops@altvina.com' },
+      { id: 'm-client-4', firstName: 'Riley', lastName: 'Park', displayName: 'Riley Park', username: 'riley.park', role: 'client', title: 'VP Ops', email: 'riley@vertex.example' },
+      { id: 'm-expert-1', firstName: 'Alex', lastName: 'Morgan', displayName: 'Alex Morgan', username: 'alex.morgan', role: 'expert', title: 'Fractional COO', email: 'expert@altvina.pro' },
+      { id: 'm-staff-2', firstName: 'Jordan', lastName: 'Smith', displayName: 'Jordan Smith', username: 'jordan.smith', role: 'staff', title: 'Altvina Ops', email: 'ops@altvina.com' },
     ],
     updates: [],
     projects: [{ id: 'p-4', name: 'PM Playbook Rollout', status: 'active' }],
@@ -334,6 +368,17 @@ export async function GET(req: NextRequest) {
   const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
   const workspaceConfig = readWorkspaceConfig(req);
 
+  const CURRENT_MEMBER_ID_BY_ROLE: Record<DashboardRole, string> = {
+    client: 'm-client-1',
+    expert: 'm-expert-1',
+    staff_admin: 'm-staff-1',
+    super_admin: 'm-super-1',
+  };
+
+  function hasMember(seed: WorkspaceSeed, memberId: string) {
+    return seed.members.some((m) => m.id === memberId);
+  }
+
   if (fail === '1') {
     return NextResponse.json(
       { error: 'Simulated failure. Remove `?fail=1` to load data.' },
@@ -349,12 +394,24 @@ export async function GET(req: NextRequest) {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  const visibleWorkspaceSeeds =
+  const baseVisibleWorkspaceSeeds =
     role === 'super_admin'
       ? workspaceSeeds
       : workspaceSeeds.filter((w) => w.id !== 'ws-superadmin');
 
-  const workspaces = visibleWorkspaceSeeds.map((w) => ({
+  const associatedWorkspaceSeeds =
+    role === 'client' || role === 'expert'
+      ? baseVisibleWorkspaceSeeds.filter((w) => hasMember(w, CURRENT_MEMBER_ID_BY_ROLE[role]))
+      : baseVisibleWorkspaceSeeds;
+
+  if (!associatedWorkspaceSeeds.length) {
+    return NextResponse.json(
+      { error: 'No workspaces available for this user.' },
+      { status: 404 },
+    );
+  }
+
+  const workspaces = associatedWorkspaceSeeds.map((w) => ({
     id: w.id,
     name: w.name,
     clientLabel: w.clientLabel,
@@ -367,19 +424,41 @@ export async function GET(req: NextRequest) {
     super_admin: 'ws-superadmin',
   };
 
+  const preferredDefaultWorkspaceId = defaultWorkspaceIdByRole[role];
+  const fallbackDefaultWorkspaceId =
+    workspaces.some((w) => w.id === preferredDefaultWorkspaceId)
+      ? preferredDefaultWorkspaceId
+      : workspaces[0]?.id ?? preferredDefaultWorkspaceId;
+
+  if (workspaceIdParam && !workspaces.some((w) => w.id === workspaceIdParam)) {
+    return NextResponse.json(
+      { error: 'Workspace access denied for this user.' },
+      { status: 403 },
+    );
+  }
+
   const activeWorkspaceId =
     workspaceIdParam && workspaces.some((w) => w.id === workspaceIdParam)
       ? workspaceIdParam
-      : defaultWorkspaceIdByRole[role];
+      : fallbackDefaultWorkspaceId;
 
   const workspaceSeed =
-    visibleWorkspaceSeeds.find((w) => w.id === activeWorkspaceId) ?? visibleWorkspaceSeeds[0];
+    associatedWorkspaceSeeds.find((w) => w.id === activeWorkspaceId) ??
+    associatedWorkspaceSeeds[0];
 
   const currentMemberId = (() => {
-    if (role === 'staff_admin' || role === 'super_admin') {
-      return seedMemberByRole(workspaceSeed, 'staff')?.id ?? workspaceSeed.members[0]?.id ?? 'unknown';
+    const preferred = CURRENT_MEMBER_ID_BY_ROLE[role];
+    if (role === 'client' || role === 'expert' || role === 'super_admin') {
+      return preferred;
     }
-    return seedMemberByRole(workspaceSeed, role)?.id ?? workspaceSeed.members[0]?.id ?? 'unknown';
+
+    // staff_admin: prefer stable staff identity when present; else use the staff member for the workspace.
+    return (
+      (preferred && hasMember(workspaceSeed, preferred) ? preferred : null) ??
+      seedMemberByRole(workspaceSeed, 'staff')?.id ??
+      workspaceSeed.members[0]?.id ??
+      'unknown'
+    );
   })();
 
   function seedMemberByRole(seed: WorkspaceSeed, memberRole: 'client' | 'expert' | 'staff') {
@@ -447,11 +526,20 @@ export async function GET(req: NextRequest) {
           const base = { ...m, email: undefined };
           if (m.role === 'expert') {
             expertIndex += 1;
+            const titleHidden = o?.showTitle === false;
+            const bioHidden = o?.showBio ? false : true;
             return [
               {
                 ...base,
-                title: o?.showTitle === false ? undefined : base.title,
-                bio: o?.showBio ? base.bio : undefined,
+                title: titleHidden ? undefined : base.title,
+                bio: bioHidden ? undefined : base.bio,
+                firstName: undefined,
+                lastName: undefined,
+                fieldMask: {
+                  name: true,
+                  title: titleHidden || undefined,
+                  bio: bioHidden || undefined,
+                },
                 displayName:
                   (o?.alias?.trim() ? o.alias.trim() : null) ??
                   `Expert ${String.fromCharCode(64 + expertIndex)}`,
@@ -459,20 +547,32 @@ export async function GET(req: NextRequest) {
             ];
           }
           if (m.role === 'staff') {
+            const titleHidden = o?.showTitle === false;
+            const bioHidden = o?.showBio ? false : true;
             return [
               {
                 ...base,
-                title: o?.showTitle === false ? undefined : base.title,
-                bio: o?.showBio ? base.bio : undefined,
+                title: titleHidden ? undefined : base.title,
+                bio: bioHidden ? undefined : base.bio,
+                fieldMask: {
+                  title: titleHidden || undefined,
+                  bio: bioHidden || undefined,
+                },
                 displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
               },
             ];
           }
+          const titleHidden = o?.showTitle === false;
+          const bioHidden = o?.showBio ? false : true;
           return [
             {
               ...base,
-              title: o?.showTitle === false ? undefined : base.title,
-              bio: o?.showBio ? base.bio : undefined,
+              title: titleHidden ? undefined : base.title,
+              bio: bioHidden ? undefined : base.bio,
+              fieldMask: {
+                title: titleHidden || undefined,
+                bio: bioHidden || undefined,
+              },
               displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
             },
           ];
@@ -492,22 +592,37 @@ export async function GET(req: NextRequest) {
         const base = { ...m, email: undefined };
         if (m.role === 'client') {
           clientIndex += 1;
+          const titleHidden = o?.showTitle === false;
+          const bioHidden = o?.showBio ? false : true;
           return [
             {
               ...base,
-              title: o?.showTitle === false ? undefined : base.title,
-              bio: o?.showBio ? base.bio : undefined,
+              title: titleHidden ? undefined : base.title,
+              bio: bioHidden ? undefined : base.bio,
+              firstName: undefined,
+              lastName: undefined,
+              fieldMask: {
+                name: true,
+                title: titleHidden || undefined,
+                bio: bioHidden || undefined,
+              },
               displayName:
                 (o?.alias?.trim() ? o.alias.trim() : null) ??
                 `Client ${String.fromCharCode(64 + clientIndex)}`,
             },
           ];
         }
+        const titleHidden = o?.showTitle === false;
+        const bioHidden = o?.showBio ? false : true;
         return [
           {
             ...base,
-            title: o?.showTitle === false ? undefined : base.title,
-            bio: o?.showBio ? base.bio : undefined,
+            title: titleHidden ? undefined : base.title,
+            bio: bioHidden ? undefined : base.bio,
+            fieldMask: {
+              title: titleHidden || undefined,
+              bio: bioHidden || undefined,
+            },
             displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
           },
         ];
@@ -518,13 +633,24 @@ export async function GET(req: NextRequest) {
 
   const members = maskedMembers.map((m) => ({
     id: m.id,
+    firstName: m.firstName,
+    lastName: m.lastName,
     displayName: m.displayName,
+    username: m.username,
     role: m.role,
+    headline: m.headline,
     title: m.title,
     bio: m.bio,
+    location: m.location,
+    phone: capabilities.canViewContactInfo ? m.phone : undefined,
     email: capabilities.canViewContactInfo ? m.email : undefined,
+    linkedInUrl: m.linkedInUrl,
+    website: m.website,
+    skills: m.skills,
+    fieldMask: m.fieldMask,
     contactMask: {
       email: !capabilities.canViewContactInfo,
+      phone: !capabilities.canViewContactInfo,
     },
   }));
 
@@ -656,6 +782,13 @@ export async function GET(req: NextRequest) {
         }
       : inboxPreview;
 
+  const currentUserName = userByRole[role].name;
+  const firstName = currentUserName.trim().split(/\s+/)[0] ?? 'there';
+  const sidebarAssistantForUser = {
+    ...sidebarAssistant,
+    greeting: `Hi, ${firstName}`,
+  };
+
   return NextResponse.json({
     role,
     capabilities,
@@ -664,7 +797,7 @@ export async function GET(req: NextRequest) {
     revenueAnalytics,
     progressDonut,
     manageProjects: manageProjectsByRole,
-    sidebarAssistant,
+    sidebarAssistant: sidebarAssistantForUser,
     performanceEvaluation: performanceByRole,
     promoLearning,
     inboxPreview: inboxByRole,
