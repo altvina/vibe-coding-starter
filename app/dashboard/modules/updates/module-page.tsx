@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/shared/ui/avatar';
 import { cn } from '@/lib/utils';
 
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
+import type { WorkspaceUpdate } from '@/app/dashboard/dashboard-context';
 import { useDashboardData } from '@/app/dashboard/dashboard-context';
 import { useDashboardWorkspace } from '@/app/dashboard/dashboard-workspace-context';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
@@ -35,20 +36,14 @@ function formatDateTime(iso: string) {
 }
 
 const EMPTY_MEMBERS: Array<{ id: string; displayName: string; role: 'client' | 'expert' | 'staff' }> = [];
-const EMPTY_UPDATES: Array<{
-  id: string;
-  authorId: string;
-  createdAt: string;
-  body: string;
-  comments: Array<{ id: string; authorId: string; createdAt: string; body: string }>;
-}> = [];
+const EMPTY_UPDATES: WorkspaceUpdate[] = [];
 
 export function UpdatesModulePage() {
   const { data } = useDashboardData();
   const { activeWorkspaceId } = useDashboardWorkspace();
   const [body, setBody] = useState('');
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
-  const [localUpdates, setLocalUpdates] = useState(() => []);
+  const [localUpdates, setLocalUpdates] = useState<WorkspaceUpdate[]>([]);
 
   useEffect(() => {
     const stored = loadStoredUpdates(activeWorkspaceId);

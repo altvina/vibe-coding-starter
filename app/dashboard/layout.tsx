@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 
 import { DashboardShell } from '@/app/dashboard/dashboard-shell';
 import { DashboardDataProvider } from '@/app/dashboard/dashboard-context';
@@ -11,9 +12,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <DashboardRoleProvider>
       <ModuleAccessProvider>
         <DashboardWorkspaceProvider>
-          <DashboardDataProvider>
-            <DashboardShell>{children}</DashboardShell>
-          </DashboardDataProvider>
+          <Suspense fallback={null}>
+            <DashboardDataProvider>
+              <DashboardShell>{children}</DashboardShell>
+            </DashboardDataProvider>
+          </Suspense>
         </DashboardWorkspaceProvider>
       </ModuleAccessProvider>
     </DashboardRoleProvider>

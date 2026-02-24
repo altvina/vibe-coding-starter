@@ -72,7 +72,7 @@ type WorkspaceSeed = {
     id: string;
     projectId: string;
     title: string;
-    status: 'todo' | 'doing' | 'blocked' | 'done';
+    status: 'todo' | 'doing' | 'blocked' | 'review' | 'done';
     dueOn?: string;
     assigneeIds: string[];
   }>;
@@ -438,38 +438,44 @@ export async function GET(req: NextRequest) {
       let expertIndex = 0;
       return seed.members
         .filter((m) => m.role !== 'client' || m.id === currentMemberId)
-        .map((m) => {
+        .flatMap((m) => {
           const o = memberOverride(m.id, 'client');
           if (o?.visible === false && m.id !== currentMemberId) {
-            return null;
+            return [];
           }
 
           const base = { ...m, email: undefined };
           if (m.role === 'expert') {
             expertIndex += 1;
-            return {
-              ...base,
-              title: o?.showTitle === false ? undefined : base.title,
-              bio: o?.showBio ? base.bio : undefined,
-              displayName:
-                (o?.alias?.trim() ? o.alias.trim() : null) ??
-                `Expert ${String.fromCharCode(64 + expertIndex)}`,
-            };
+            return [
+              {
+                ...base,
+                title: o?.showTitle === false ? undefined : base.title,
+                bio: o?.showBio ? base.bio : undefined,
+                displayName:
+                  (o?.alias?.trim() ? o.alias.trim() : null) ??
+                  `Expert ${String.fromCharCode(64 + expertIndex)}`,
+              },
+            ];
           }
           if (m.role === 'staff') {
-            return {
+            return [
+              {
+                ...base,
+                title: o?.showTitle === false ? undefined : base.title,
+                bio: o?.showBio ? base.bio : undefined,
+                displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
+              },
+            ];
+          }
+          return [
+            {
               ...base,
               title: o?.showTitle === false ? undefined : base.title,
               bio: o?.showBio ? base.bio : undefined,
               displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
-            };
-          }
-          return {
-            ...base,
-            title: o?.showTitle === false ? undefined : base.title,
-            bio: o?.showBio ? base.bio : undefined,
-            displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
-          };
+            },
+          ];
         });
     }
 
@@ -477,34 +483,38 @@ export async function GET(req: NextRequest) {
     let clientIndex = 0;
     return seed.members
       .filter((m) => m.role !== 'client' || m.id === currentMemberId)
-      .map((m) => {
+      .flatMap((m) => {
         const o = memberOverride(m.id, 'expert');
         if (o?.visible === false && m.id !== currentMemberId) {
-          return null;
+          return [];
         }
 
         const base = { ...m, email: undefined };
         if (m.role === 'client') {
           clientIndex += 1;
-          return {
+          return [
+            {
+              ...base,
+              title: o?.showTitle === false ? undefined : base.title,
+              bio: o?.showBio ? base.bio : undefined,
+              displayName:
+                (o?.alias?.trim() ? o.alias.trim() : null) ??
+                `Client ${String.fromCharCode(64 + clientIndex)}`,
+            },
+          ];
+        }
+        return [
+          {
             ...base,
             title: o?.showTitle === false ? undefined : base.title,
             bio: o?.showBio ? base.bio : undefined,
-            displayName:
-              (o?.alias?.trim() ? o.alias.trim() : null) ??
-              `Client ${String.fromCharCode(64 + clientIndex)}`,
-          };
-        }
-        return {
-          ...base,
-          title: o?.showTitle === false ? undefined : base.title,
-          bio: o?.showBio ? base.bio : undefined,
-          displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
-        };
+            displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
+          },
+        ];
       });
   }
 
-  const maskedMembers = maskMembers(workspaceSeed).filter(Boolean) as WorkspaceSeed['members'];
+  const maskedMembers = maskMembers(workspaceSeed);
 
   const members = maskedMembers.map((m) => ({
     id: m.id,
@@ -547,7 +557,9 @@ export async function GET(req: NextRequest) {
           ? 'onReview'
           : t.status === 'blocked'
             ? 'onReview'
-            : t.status === 'doing'
+            : t.status === 'review'
+              ? 'onReview'
+              : t.status === 'doing'
               ? 'onProgress'
               : 'onProgress';
 

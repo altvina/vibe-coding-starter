@@ -60,12 +60,16 @@ function statusLabel(status: WorkspaceTask['status']) {
   if (status === 'todo') return 'To do';
   if (status === 'doing') return 'Doing';
   if (status === 'blocked') return 'Blocked';
+  if (status === 'review') return 'In review';
   return 'Done';
 }
 
 function statusBadgeClasses(status: WorkspaceTask['status']) {
   if (status === 'done') {
     return 'bg-secondary-100 text-secondary-700 dark:bg-secondary-900/30 dark:text-secondary-200';
+  }
+  if (status === 'review') {
+    return 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200';
   }
   if (status === 'blocked') {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200';
@@ -208,7 +212,7 @@ export function ProjectsHierarchyPage() {
                   <Filter className="mr-2 h-4 w-4" />
                   Filter
                 </span>
-                {(['all', 'todo', 'doing', 'blocked', 'done'] as const).map((s) => {
+                {(['all', 'todo', 'doing', 'blocked', 'review', 'done'] as const).map((s) => {
                   const isActive = statusFilter === s;
                   const label = s === 'all' ? 'All' : statusLabel(s);
                   return (

@@ -10,7 +10,6 @@ module.exports = {
     './pages/**/*.{js,ts,jsx,tsx,css,mdx}',
     './components/**/*.{js,ts,jsx,tsx,css,mdx}',
     './layouts/**/*.{js,ts,jsx,tsx,css,mdx}',
-    './demo/**/*.{js,ts,jsx,tsx,css,mdx}',
     './data/**/*.mdx',
   ],
   darkMode: ['class'],

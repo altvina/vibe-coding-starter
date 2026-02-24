@@ -25,12 +25,12 @@ const baseFont = Nunito_Sans({
 const globalColors = colors;
 const style: string[] = [];
 
-Object.keys(globalColors).map((variant) => {
-  return Object.keys(globalColors[variant]).map((color) => {
+for (const variant of Object.keys(globalColors)) {
+  for (const color of Object.keys(globalColors[variant])) {
     const value = globalColors[variant][color];
     style.push(`--${variant}-${color}: ${value}`);
-  });
-});
+  }
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.siteUrl),
@@ -86,7 +86,7 @@ export default function RootLayout({
       <head>
         <style>
           {`
-          :root, :before, :after {
+          :root {
             ${style.join(';')}
           }
         `}

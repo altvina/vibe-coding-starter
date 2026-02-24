@@ -1,8 +1,5 @@
-// @ts-nocheck
-
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
-import { LandingHeaderMenuItem } from '@/components/landing';
 import { LandingPrimaryImageCtaSection } from '@/components/landing';
 import { LandingSocialProof } from '@/components/landing';
 import { LandingFeatureList } from '@/components/landing';
@@ -12,9 +9,6 @@ import { LandingTestimonialReadMoreWrapper } from '@/components/landing';
 import { LandingTestimonialGrid } from '@/components/landing';
 import { LandingSaleCtaSection } from '@/components/landing';
 import { LandingFaqCollapsibleSection } from '@/components/landing';
-import { LandingFooter } from '@/components/landing';
-import { LandingFooterColumn } from '@/components/landing';
-import { LandingFooterLink } from '@/components/landing';
 import Image from 'next/image';
 import { Button } from '@/components/shared/ui/button';
 import Link from 'next/link';
@@ -334,7 +328,7 @@ export default function Page() {
         backgroundGlowVariant="primary"
       >
         <Button size="xl" asChild>
-          <Link href="/plans">See Plans</Link>
+          <Link href="/pricing">See Plans</Link>
         </Button>
       </LandingSaleCtaSection>
 
@@ -389,7 +383,7 @@ export default function Page() {
         backgroundGlowVariant="primary"
       >
         <Button size="xl" asChild>
-          <Link href="/signup">Sign Up Free</Link>
+          <Link href="/pricing">Sign Up Free</Link>
         </Button>
       </LandingSaleCtaSection>
 

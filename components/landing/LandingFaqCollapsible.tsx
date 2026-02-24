@@ -12,23 +12,8 @@ export interface FaqItem {
   answer: string | React.ReactNode;
 }
 
-/**
- * A component meant to be used in the landing page.
- * It displays a collapsible list of frequently asked questions and their answers.
- */
-export const LandingFaqCollapsibleSection = ({
-  className,
-  title,
-  titleComponent,
-  description,
-  descriptionComponent,
-  faqItems,
-  withBackground = false,
-  withBackgroundGlow = false,
-  variant = 'primary',
-  backgroundGlowVariant = 'primary',
-}: {
-  className?: string;
+type LandingFaqCollapsibleSectionProps = React.ComponentPropsWithoutRef<'section'> & {
+  innerClassName?: string;
   title?: string | React.ReactNode;
   titleComponent?: React.ReactNode;
   description?: string | React.ReactNode;
@@ -38,9 +23,29 @@ export const LandingFaqCollapsibleSection = ({
   withBackgroundGlow?: boolean;
   variant?: 'primary' | 'secondary';
   backgroundGlowVariant?: 'primary' | 'secondary';
-}) => {
+};
+
+/**
+ * A component meant to be used in the landing page.
+ * It displays a collapsible list of frequently asked questions and their answers.
+ */
+export const LandingFaqCollapsibleSection = ({
+  className,
+  innerClassName,
+  title,
+  titleComponent,
+  description,
+  descriptionComponent,
+  faqItems,
+  withBackground = false,
+  withBackgroundGlow = false,
+  variant = 'primary',
+  backgroundGlowVariant = 'primary',
+  ...sectionProps
+}: LandingFaqCollapsibleSectionProps) => {
   return (
     <section
+      {...sectionProps}
       className={clsx(
         'relative w-full flex justify-center items-center gap-8 py-12 lg:py-16 flex-col',
         withBackground && variant === 'primary'
@@ -62,7 +67,7 @@ export const LandingFaqCollapsibleSection = ({
         </div>
       ) : null}
 
-      <div className={clsx(className, 'w-full p-6 container-narrow')}>
+      <div className={clsx('w-full p-6 container-narrow', innerClassName)}>
         {titleComponent || (title && (
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight max-w-xs sm:max-w-none fancyHeading">
             {title}

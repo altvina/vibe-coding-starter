@@ -8,6 +8,19 @@ export interface FeatureListItem {
   icon: React.ReactNode;
 }
 
+type LandingFeatureListProps = React.ComponentPropsWithoutRef<'section'> & {
+  innerClassName?: string;
+  title?: string | React.ReactNode;
+  titleComponent?: React.ReactNode;
+  description?: string | React.ReactNode;
+  descriptionComponent?: React.ReactNode;
+  featureItems?: FeatureListItem[];
+  withBackground?: boolean;
+  withBackgroundGlow?: boolean;
+  variant?: 'primary' | 'secondary';
+  backgroundGlowVariant?: 'primary' | 'secondary';
+};
+
 /**
  * A component meant to be used on the landing page.
  * It displays a grid list of features.
@@ -27,22 +40,11 @@ export const LandingFeatureList = ({
   withBackgroundGlow = false,
   variant = 'primary',
   backgroundGlowVariant = 'primary',
-}: {
-  children?: React.ReactNode;
-  className?: string;
-  innerClassName?: string;
-  title?: string | React.ReactNode;
-  titleComponent?: React.ReactNode;
-  description?: string | React.ReactNode;
-  descriptionComponent?: React.ReactNode;
-  featureItems?: FeatureListItem[];
-  withBackground?: boolean;
-  withBackgroundGlow?: boolean;
-  variant?: 'primary' | 'secondary';
-  backgroundGlowVariant?: 'primary' | 'secondary';
-}) => {
+  ...sectionProps
+}: LandingFeatureListProps) => {
   return (
     <section
+      {...sectionProps}
       className={clsx(
         'relative w-full flex justify-center items-center gap-8 py-12 lg:py-16 flex-col',
         withBackground && variant === 'primary'

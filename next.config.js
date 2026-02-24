@@ -3,21 +3,31 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 // You might need to insert additional domains in script-src if you are using external services
-const ContentSecurityPolicy = `
-  default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel-analytics.com *.vercel-scripts.com *.cloudflareinsights.com;
-  style-src 'self' 'unsafe-inline';
-  img-src *.supabase.co * blob: data:;
-  media-src *.s3.amazonaws.com *.shipixen.com;
-  connect-src *;
-  font-src 'self';
-`;
+const isDev = process.env.NODE_ENV !== 'production';
+const ContentSecurityPolicy = [
+  "default-src 'self'",
+  [
+    "script-src 'self'",
+    isDev ? "'unsafe-eval'" : '',
+    "'unsafe-inline'",
+    '*.vercel-analytics.com',
+    '*.vercel-scripts.com',
+    '*.cloudflareinsights.com',
+  ]
+    .filter(Boolean)
+    .join(' '),
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' https: data: blob:",
+  "media-src 'self' https:",
+  "connect-src 'self' https:",
+  "font-src 'self'",
+].join('; ');
 
 const securityHeaders = [
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
   {
     key: 'Content-Security-Policy',
-    value: ContentSecurityPolicy.replace(/\n/g, ''),
+    value: ContentSecurityPolicy,
   },
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
   {

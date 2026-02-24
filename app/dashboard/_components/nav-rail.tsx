@@ -16,7 +16,7 @@ import {
   Workflow,
   CircleDashed,
 } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, type Transition } from 'framer-motion';
 
 import CustomLink from '@/components/shared/Link';
 import { cn } from '@/lib/utils';
@@ -140,7 +140,7 @@ export function NavRail({ items }: { items: NavItem[] }) {
               {list.map((i) => {
                 const active = isActivePath(pathname, i.href);
                 const Icon = iconForHref(i.href);
-                const motionTransition = shouldReduceMotion
+                const motionTransition: Transition = shouldReduceMotion
                   ? { duration: 0 }
                   : { type: 'spring', stiffness: 520, damping: 42, mass: 0.7 };
                 return (

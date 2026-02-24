@@ -90,7 +90,7 @@ export type WorkspaceTask = {
   id: string;
   projectId: string;
   title: string;
-  status: 'todo' | 'doing' | 'blocked' | 'done';
+  status: 'todo' | 'doing' | 'blocked' | 'review' | 'done';
   dueOn?: string;
   assigneeIds: string[];
 };

@@ -44,6 +44,7 @@ This rule explains the tech stack and dependencies used in the project.
 ### Motion & Carousel
 - **Framer Motion**: `^12` - Advanced animations
 - **Embla Carousel React**: `^8` - Touch-friendly carousels
+- **Dnd Kit**: `^6` - Drag-and-drop primitives (`@dnd-kit/*`)
 
 ## Data Visualization & Tables
 
@@ -60,7 +61,7 @@ This rule explains the tech stack and dependencies used in the project.
 ### Advanced UI Components
 - **Sonner**: `^1.7.4` - Toast notifications
 - **Vaul**: `^1.1.2` - Mobile drawer component
-- **React Day Picker**: `^8.10.1` - Date picker
+- **React Day Picker**: `^9.9.0` - Date picker
 - **React Resizable Panels**: `^2.1.8` - Layout panels
 
 ## Development & Build Tools

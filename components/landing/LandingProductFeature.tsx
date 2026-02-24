@@ -2,6 +2,32 @@ import clsx from 'clsx';
 import Image from '@/components/shared/Image';
 import { GlowBg } from '@/components/shared/ui/glow-bg';
 
+type LandingProductFeatureProps = React.ComponentPropsWithoutRef<'section'> & {
+  innerClassName?: string;
+  textClassName?: string;
+  title?: string | React.ReactNode;
+  titleComponent?: React.ReactNode;
+  description?: string | React.ReactNode;
+  descriptionComponent?: React.ReactNode;
+  leadingComponent?: React.ReactNode;
+  textPosition?: 'center' | 'left';
+  imageSrc?: string;
+  imageAlt?: string;
+  imagePosition?: 'left' | 'right' | 'center';
+  imagePerspective?: 'none' | 'left' | 'right' | 'bottom' | 'bottom-lg' | 'paper';
+  imageShadow?: 'none' | 'soft' | 'hard';
+  imageClassName?: string;
+  zoomOnHover?: boolean;
+  minHeight?: number;
+  withBackground?: boolean;
+  withBackgroundGlow?: boolean;
+  variant?: 'primary' | 'secondary';
+  backgroundGlowVariant?: 'primary' | 'secondary';
+  effectComponent?: React.ReactNode;
+  effectClassName?: string;
+  inContainer?: boolean;
+};
+
 /**
  * A component meant to be used in the landing page.
  * It displays a title, description and optionally, an image of a product's feature.
@@ -36,39 +62,8 @@ export const LandingProductFeature = ({
   effectComponent,
   effectClassName,
   inContainer,
-}: {
-  children?: React.ReactNode;
-  className?: string;
-  innerClassName?: string;
-  textClassName?: string;
-  title?: string | React.ReactNode;
-  titleComponent?: React.ReactNode;
-  description?: string | React.ReactNode;
-  descriptionComponent?: React.ReactNode;
-  leadingComponent?: React.ReactNode;
-  textPosition?: 'center' | 'left';
-  imageSrc?: string;
-  imageAlt?: string;
-  imagePosition?: 'left' | 'right' | 'center';
-  imagePerspective?:
-    | 'none'
-    | 'left'
-    | 'right'
-    | 'bottom'
-    | 'bottom-lg'
-    | 'paper';
-  imageShadow?: 'none' | 'soft' | 'hard';
-  imageClassName?: string;
-  zoomOnHover?: boolean;
-  minHeight?: number;
-  withBackground?: boolean;
-  withBackgroundGlow?: boolean;
-  variant?: 'primary' | 'secondary';
-  backgroundGlowVariant?: 'primary' | 'secondary';
-  effectComponent?: React.ReactNode;
-  effectClassName?: string;
-  inContainer?: boolean;
-}) => {
+  ...sectionProps
+}: LandingProductFeatureProps) => {
   const isInContainer = inContainer || (!imagePosition && !imageShadow);
   const defaultImagePosition =
     imagePosition !== undefined ? imagePosition : 'right';
@@ -80,6 +75,7 @@ export const LandingProductFeature = ({
 
   return (
     <section
+      {...sectionProps}
       className={clsx(
         'relative w-full flex flex-col justify-center items-center gap-8 py-12 lg:py-16',
         withBackground && variant === 'primary'
