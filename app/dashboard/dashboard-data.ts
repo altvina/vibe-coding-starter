@@ -47,35 +47,6 @@ export const dashboardKpis = [
   },
 ] as const;
 
-export const revenueAnalytics = {
-  title: 'Revenue Analytics',
-  points: [
-    { id: 'w1', weekLabel: 'Week 1', monthLabel: 'May 2025', value: 32820000 },
-    { id: 'w2', weekLabel: 'Week 2', monthLabel: 'May 2025', value: 61820000 },
-    { id: 'w3', weekLabel: 'Week 3', monthLabel: 'May 2025', value: 45240000 },
-    { id: 'w4', weekLabel: 'Week 4', monthLabel: 'May 2025', value: 50860000 },
-    { id: 'w5', weekLabel: 'Week 5', monthLabel: 'May 2025', value: 39520000 },
-  ],
-  highlightedPointId: 'w2',
-} as const;
-
-export type DonutSegment = {
-  id: string;
-  label: string;
-  pct: number;
-  color: 'primary' | 'secondary' | 'ink';
-};
-
-export const progressDonut = {
-  title: 'Progress',
-  center: { value: 87, label: 'Project Finished' },
-  segments: [
-    { id: 'completed', label: 'Completed', pct: 50, color: 'primary' },
-    { id: 'active', label: 'Active', pct: 20, color: 'secondary' },
-    { id: 'priority', label: 'Priority', pct: 12.5, color: 'ink' },
-  ] satisfies DonutSegment[],
-} as const;
-
 export type ProjectStatus = 'onReview' | 'onProgress';
 
 export type ProjectRow = {
@@ -157,18 +128,6 @@ export const sidebarAssistant = {
     { id: 'automation', label: 'Process Automation' },
     { id: 'schedule', label: 'Schedule Optimization' },
     { id: 'responses', label: 'Smart Responses' },
-  ],
-} as const;
-
-export const performanceEvaluation = {
-  title: 'Performance Evaluation',
-  rating: 8.2,
-  ratingLabel: 'Average Rating',
-  note: 'Highlight improvement areas by expert.',
-  distribution: [
-    { id: 'excellent', label: 'Excellent', pct: 50, color: 'primary' },
-    { id: 'good', label: 'Good', pct: 30, color: 'secondary' },
-    { id: 'fair', label: 'Fair', pct: 20, color: 'ink' },
   ],
 } as const;
 

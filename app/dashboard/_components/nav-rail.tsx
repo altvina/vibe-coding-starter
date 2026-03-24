@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import {
+  AppWindow,
   BarChart3,
   Briefcase,
   Crown,
@@ -34,7 +35,11 @@ function isActivePath(pathname: string | null, href: string) {
 
 export function groupForHref(href: string) {
   if (href === '/dashboard') return 'Home';
-  if (href.startsWith('/dashboard/projects') || href.startsWith('/dashboard/analytics')) {
+  if (
+    href.startsWith('/dashboard/projects') ||
+    href.startsWith('/dashboard/analytics') ||
+    href.startsWith('/dashboard/integrations')
+  ) {
     return 'Work';
   }
   if (
@@ -51,6 +56,7 @@ export function groupForHref(href: string) {
 
 export function iconForHref(href: string) {
   if (href === '/dashboard') return Home;
+  if (href.startsWith('/dashboard/integrations')) return AppWindow;
   if (href.startsWith('/dashboard/projects')) return ListChecks;
   if (href.startsWith('/dashboard/updates')) return Workflow;
   if (href.startsWith('/dashboard/chat')) return MessageSquare;
@@ -68,6 +74,7 @@ const groupOrder = ['Home', 'Work', 'Collaboration', 'Admin'] as const;
 
 const preferredHrefOrder = [
   '/dashboard',
+  '/dashboard/integrations',
   '/dashboard/projects',
   '/dashboard/updates',
   '/dashboard/chat',

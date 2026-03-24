@@ -4,7 +4,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useSearchParams } from 'next/navigation';
 
 import type {
-  DonutSegment,
   KpiDelta,
   ProjectRow,
 } from '@/app/dashboard/dashboard-data';
@@ -20,13 +19,6 @@ export type DashboardKpi = {
   valueFormat: 'currencyIdr' | 'number';
   subtext: string;
   delta: KpiDelta;
-};
-
-export type RevenuePoint = {
-  id: string;
-  weekLabel: string;
-  monthLabel: string;
-  value: number;
 };
 
 export type DashboardUser = {
@@ -133,16 +125,6 @@ export type DashboardApiResponse = {
   capabilities: DashboardCapabilities;
   user: DashboardUser;
   kpis: DashboardKpi[];
-  revenueAnalytics: {
-    title: string;
-    highlightedPointId: string;
-    points: RevenuePoint[];
-  };
-  progressDonut: {
-    title: string;
-    center: { value: number; label: string };
-    segments: DonutSegment[];
-  };
   manageProjects: {
     title: string;
     defaultFilterId: string;
@@ -154,13 +136,6 @@ export type DashboardApiResponse = {
     headline: string;
     placeholder: string;
     quickActions: Array<{ id: string; label: string }>;
-  };
-  performanceEvaluation: {
-    title: string;
-    rating: number;
-    ratingLabel: string;
-    note: string;
-    distribution: Array<{ id: string; label: string; pct: number; color: 'primary' | 'secondary' | 'ink' }>;
   };
   promoLearning: {
     headline: string;

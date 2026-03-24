@@ -6,17 +6,21 @@ import { MessageSquare } from 'lucide-react';
 import type { DashboardModuleDefinition } from '@/app/dashboard/modules/types';
 
 function ChatWidget({ data }: { data: DashboardApiResponse }) {
+  void data;
+
   return (
-    <DashboardCard title="Chat">
+    <DashboardCard title="Mattermost">
       <div className={dashboardTokens.textMuted}>
-        <span className="text-sm">Channels and direct messages. Open Chat to continue.</span>
+        <span className="text-sm">
+          Team conversations for the active workspace.
+        </span>
       </div>
       <CustomLink
         href="/dashboard/chat"
         className="mt-3 flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400"
       >
         <MessageSquare className="h-4 w-4" />
-        Open Chat
+        Open Mattermost
       </CustomLink>
     </DashboardCard>
   );
@@ -24,7 +28,7 @@ function ChatWidget({ data }: { data: DashboardApiResponse }) {
 
 export const chatModule: DashboardModuleDefinition = {
   id: 'chat',
-  label: 'Chat',
+  label: 'Mattermost',
   href: '/dashboard/chat',
   allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
   navOrder: 32,
@@ -32,7 +36,7 @@ export const chatModule: DashboardModuleDefinition = {
     {
       id: 'chat.preview',
       moduleId: 'chat',
-      title: 'Chat',
+      title: 'Mattermost',
       href: '/dashboard/chat',
       allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
       defaultSize: 'md',

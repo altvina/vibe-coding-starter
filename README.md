@@ -13,6 +13,7 @@ See the full video here:
 [![Image](https://pageai.pro/static/images/blog/vibe-coding-starter-guide.jpg)](https://www.youtube.com/watch?v=p_q7-iW606U)
 
 - [Installation](#installation)
+- [Environment](#environment)
 - [Development](#development)
 - [Build](#build)
 
@@ -20,6 +21,19 @@ See the full video here:
 
 ```bash
 npm i
+```
+
+## Environment
+
+The app uses **Postgres** for the CRM and admin SQL. Set the connection string in the environment (never commit real credentials).
+
+- **Local:** Copy [.env.example](.env.example) to `.env.local` and set `DATABASE_URL` to your Neon (or other Postgres) URL.
+- **Vercel:** In the project → Settings → Environment Variables, add `DATABASE_URL` with the same connection string (Production / Preview as needed).
+
+After setting `DATABASE_URL`, run CRM migrations once:
+
+```bash
+npm run crm:migrate
 ```
 
 ## Development

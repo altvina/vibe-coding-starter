@@ -1,32 +1,26 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useDashboardRole } from '@/app/dashboard/dashboard-role-context';
 import { useEffect } from 'react';
-
-const CRM_ALLOWED: Array<string> = ['staff_admin', 'super_admin'];
+import { useRouter } from 'next/navigation';
 
 export default function CrmLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { role } = useDashboardRole();
   const router = useRouter();
 
   useEffect(() => {
-    if (!CRM_ALLOWED.includes(role)) {
-      router.replace('/dashboard');
-    }
-  }, [role, router]);
+    router.replace('/dashboard');
+  }, [router]);
 
-  if (!CRM_ALLOWED.includes(role)) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center text-slate-500">
-        Access denied. Redirecting…
+  return (
+    <div className="flex min-h-[220px] items-center justify-center">
+      <div className="max-w-md rounded-2xl border px-5 py-4 text-center text-sm text-slate-600 dark:text-slate-300">
+        CRM is currently disabled while the platform is being simplified. Redirecting to
+        dashboard…
       </div>
-    );
-  }
-
-  return <>{children}</>;
+      <div className="hidden">{children}</div>
+    </div>
+  );
 }

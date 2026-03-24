@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { ChevronRight, Sparkles, Star, Wand2 } from 'lucide-react';
+import { ChevronRight, Sparkles, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import CustomLink from '@/components/shared/Link';
@@ -19,26 +19,11 @@ type SidebarAssistant = {
   quickActions: Array<{ id: string; label: string }>;
 };
 
-type PerformanceEvaluation = {
-  title: string;
-  rating: number;
-  ratingLabel: string;
-  note: string;
-  distribution: Array<{
-    id: string;
-    label: string;
-    pct: number;
-    color: 'primary' | 'secondary' | 'ink';
-  }>;
-};
-
 export function Sidebar({
   assistant,
-  performance,
   navItems,
 }: {
   assistant?: SidebarAssistant;
-  performance?: PerformanceEvaluation;
   navItems?: Array<{ id: string; label: string; href: string }>;
 }) {
   const [prompt, setPrompt] = useState('');
@@ -108,20 +93,7 @@ export function Sidebar({
     ],
   } as const;
 
-  const performanceFallback = {
-    title: 'Performance Evaluation',
-    rating: 0,
-    ratingLabel: 'Average Rating',
-    note: '—',
-    distribution: [
-      { id: 'excellent', label: 'Excellent', pct: 0, color: 'primary' },
-      { id: 'good', label: 'Good', pct: 0, color: 'secondary' },
-      { id: 'fair', label: 'Fair', pct: 0, color: 'ink' },
-    ],
-  } as const;
-
   const sidebarAssistant = assistant ?? assistantFallback;
-  const performanceEvaluation = performance ?? performanceFallback;
 
   return (
     <div className="flex flex-col gap-4">
@@ -160,113 +132,43 @@ export function Sidebar({
         </DashboardCard>
       ) : null}
 
-      {performance ? (
-        <DashboardCard
-          title={performanceEvaluation.title}
-          action={
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                'h-8 w-8 rounded-full',
-                dashboardTokens.surfaceMuted,
-                dashboardTokens.border,
-                dashboardTokens.focusRing,
-              )}
-              aria-label="View performance details"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          }
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
-              <Star className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-semibold tabular-nums">
-                  {performanceEvaluation.rating
-                    ? performanceEvaluation.rating.toFixed(1)
-                    : '—'}
-                </div>
-                <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-                  {performanceEvaluation.ratingLabel}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {performanceEvaluation.distribution.map((seg) => (
-              <div key={seg.id} className="space-y-1">
-                <div className="flex items-center justify-between gap-3">
-                  <div className={cn('text-xs font-medium', dashboardTokens.textMuted)}>
-                    {seg.label}
-                  </div>
-                  <div className={cn('text-xs tabular-nums', dashboardTokens.textSubtle)}>
-                    {seg.pct}%
-                  </div>
-                </div>
-                <div className={cn('h-2 w-full rounded-full', dashboardTokens.surfaceMuted)}>
-                  <div
-                    className={cn(
-                      'h-2 rounded-full',
-                      seg.color === 'primary'
-                        ? 'bg-primary-600 dark:bg-primary-400'
-                        : seg.color === 'secondary'
-                          ? 'bg-secondary-600 dark:bg-secondary-400'
-                          : 'bg-slate-700 dark:bg-slate-300',
-                    )}
-                    style={{ width: `${seg.pct}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-            <div className={cn('text-xs', dashboardTokens.textSubtle)}>
-              {performanceEvaluation.note}
-            </div>
-          </div>
-        </DashboardCard>
-      ) : (
-        <DashboardCard
-          title="Next steps"
-          action={
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                'h-8 w-8 rounded-full',
-                dashboardTokens.surfaceMuted,
-                dashboardTokens.border,
-                dashboardTokens.focusRing,
-              )}
-              aria-label="View next steps"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          }
-        >
-          <div className={cn('text-sm', dashboardTokens.textMuted)}>
-            Keep collaboration controlled. Use Altvina as the conduit for
-            decisions and updates.
-          </div>
-          <ul className={cn('mt-4 space-y-2 text-sm', dashboardTokens.textMuted)}>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-secondary-600 dark:bg-secondary-400" />
-              Share your current priority and success metric.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary-600 dark:bg-primary-400" />
-              Confirm your next deliverable and due date.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-slate-700 dark:bg-slate-300" />
-              Ask the Concierge to draft a clean status update.
-            </li>
-          </ul>
-        </DashboardCard>
-      )}
+      <DashboardCard
+        title="Next steps"
+        action={
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(
+              'h-8 w-8 rounded-full',
+              dashboardTokens.surfaceMuted,
+              dashboardTokens.border,
+              dashboardTokens.focusRing,
+            )}
+            aria-label="View next steps"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        }
+      >
+        <div className={cn('text-sm', dashboardTokens.textMuted)}>
+          Keep collaboration controlled. Use Altvina as the conduit for
+          decisions and updates.
+        </div>
+        <ul className={cn('mt-4 space-y-2 text-sm', dashboardTokens.textMuted)}>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-secondary-600 dark:bg-secondary-400" />
+            Share your current priority and success metric.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary-600 dark:bg-primary-400" />
+            Confirm your next deliverable and due date.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-slate-700 dark:bg-slate-300" />
+            Ask the Concierge to draft a clean status update.
+          </li>
+        </ul>
+      </DashboardCard>
 
       <div
         className={cn(

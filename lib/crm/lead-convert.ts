@@ -27,7 +27,7 @@ export async function convertLeadToDeal(
 
   const lead = leads[0];
   let personId = lead.person_id as string | null;
-  let organizationId = lead.organization_id as string | null;
+  const organizationId = lead.organization_id as string | null;
 
   if (!personId && !organizationId) {
     const [p] = (

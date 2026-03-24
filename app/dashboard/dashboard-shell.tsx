@@ -42,13 +42,24 @@ export function DashboardShell({
       .filter((m) => (!superWorkspaceOnly.has(m.id) ? true : isInSuperWorkspace))
       .sort((a, b) => a.navOrder - b.navOrder);
 
+    const moduleTabs = visibleModules.map((m) => ({
+      id: m.id,
+      label: m.label,
+      href: m.href,
+    }));
+
+    const hasInboxPlaceholder = moduleTabs.some((tab) => tab.href === '/dashboard/inbox');
+    if (!hasInboxPlaceholder) {
+      moduleTabs.push({
+        id: 'inbox',
+        label: 'Inbox',
+        href: '/dashboard/inbox',
+      });
+    }
+
     return [
       { id: 'overview', label: 'Overview', href: '/dashboard' },
-      ...visibleModules.map((m) => ({
-        id: m.id,
-        label: m.label,
-        href: m.href,
-      })),
+      ...moduleTabs,
     ];
   }, [config.enabledByRole, data?.activeWorkspaceId, role]);
 
@@ -70,11 +81,6 @@ export function DashboardShell({
             <aside className="hidden w-72 shrink-0 lg:block">
               <Sidebar
                 assistant={data?.sidebarAssistant}
-                performance={
-                  data?.capabilities.canSeeInternalNotes
-                    ? data?.performanceEvaluation
-                    : undefined
-                }
               />
             </aside>
 
@@ -156,11 +162,6 @@ export function DashboardShell({
                 <Sidebar
                   navItems={tabs}
                   assistant={data?.sidebarAssistant}
-                  performance={
-                    data?.capabilities.canSeeInternalNotes
-                      ? data?.performanceEvaluation
-                      : undefined
-                  }
                 />
               </div>
             </SheetContent>

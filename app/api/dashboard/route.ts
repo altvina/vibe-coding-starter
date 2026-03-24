@@ -2,10 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import {
   dashboardKpis,
-  revenueAnalytics,
-  progressDonut,
   sidebarAssistant,
-  performanceEvaluation,
   promoLearning,
 } from '@/app/dashboard/dashboard-data';
 import { capabilitiesForRole } from '@/app/dashboard/dashboard-permissions';
@@ -763,14 +760,6 @@ export async function GET(req: NextRequest) {
     },
   } satisfies Record<DashboardRole, { name: string; email: string; initials: string }>;
 
-  const performanceByRole =
-    capabilities.canSeeInternalNotes
-      ? performanceEvaluation
-      : {
-          ...performanceEvaluation,
-          note: '—',
-        };
-
   const inboxByRole =
     role === 'expert'
       ? {
@@ -794,11 +783,8 @@ export async function GET(req: NextRequest) {
     capabilities,
     user: userByRole[role],
     kpis: dashboardKpis,
-    revenueAnalytics,
-    progressDonut,
     manageProjects: manageProjectsByRole,
     sidebarAssistant: sidebarAssistantForUser,
-    performanceEvaluation: performanceByRole,
     promoLearning,
     inboxPreview: inboxByRole,
     workspaces,

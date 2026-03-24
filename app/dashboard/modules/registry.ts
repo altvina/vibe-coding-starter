@@ -1,11 +1,9 @@
 import type { DashboardModuleDefinition } from '@/app/dashboard/modules/types';
 import { analyticsModule } from '@/app/dashboard/modules/analytics/manifest';
-import { projectsModule } from '@/app/dashboard/modules/projects/manifest';
-import { inboxModule } from '@/app/dashboard/modules/inbox/manifest';
 import { peopleModule } from '@/app/dashboard/modules/people/manifest';
 import { updatesModule } from '@/app/dashboard/modules/updates/manifest';
 import { chatModule } from '@/app/dashboard/modules/chat/manifest';
-import { crmModule } from '@/app/dashboard/modules/crm/manifest';
+import { integrationsModule } from '@/app/dashboard/modules/integrations/manifest';
 import { clientsModule } from '@/app/dashboard/modules/clients/manifest';
 import { workspaceAdminModule } from '@/app/dashboard/modules/workspace-admin/manifest';
 import { moduleAccessModule } from '@/app/dashboard/modules/module-access/manifest';
@@ -16,9 +14,7 @@ export const dashboardModules: DashboardModuleDefinition[] = [
   peopleModule,
   updatesModule,
   chatModule,
-  crmModule,
-  projectsModule,
-  inboxModule,
+  integrationsModule,
   clientsModule,
   workspaceAdminModule,
   moduleAccessModule,

@@ -1,8 +1,6 @@
 'use client';
 
 import { useDashboardData } from '@/app/dashboard/dashboard-context';
-import { RevenueAnalyticsCard } from '@/app/dashboard/_components/revenue-analytics-card';
-import { ProgressDonutCard } from '@/app/dashboard/_components/progress-donut-card';
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
 import { useModuleAccess } from '@/app/dashboard/module-access/module-access-context';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
@@ -27,25 +25,15 @@ export function AnalyticsContent() {
     );
   }
 
-  const canSeeRevenue = data.role === 'staff_admin';
-
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-      {canSeeRevenue ? (
-        <div className="lg:col-span-8">
-          <RevenueAnalyticsCard revenueAnalytics={data.revenueAnalytics} />
-        </div>
-      ) : (
-        <div className="lg:col-span-8">
-          <DashboardCard title="Revenue analytics">
-            <p className={cn('text-sm', dashboardTokens.textMuted)}>
-              Revenue analytics are available to Staff/Admin only.
-            </p>
-          </DashboardCard>
-        </div>
-      )}
-      <div className="lg:col-span-4">
-        <ProgressDonutCard progressDonut={data.progressDonut} />
+      <div className="lg:col-span-12">
+        <DashboardCard title="Analytics disabled">
+          <p className={cn('text-sm', dashboardTokens.textMuted)}>
+            Analytics and progress views are currently disabled while the platform is being
+            simplified.
+          </p>
+        </DashboardCard>
       </div>
     </div>
   );

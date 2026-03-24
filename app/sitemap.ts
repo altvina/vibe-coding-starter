@@ -6,10 +6,8 @@ export const dynamic = 'force-static';
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = siteConfig.siteUrl;
 
-  const routes = ['', 'overview', 'tags'].map((route) => ({
-    url: `${siteUrl}/${route}`,
-    lastModified: new Date().toISOString().split('T')[0],
-  }));
-
-  return [...routes];
+  return [
+    { url: siteUrl, lastModified: new Date().toISOString().split('T')[0] },
+    { url: `${siteUrl}/dashboard`, lastModified: new Date().toISOString().split('T')[0] },
+  ];
 }

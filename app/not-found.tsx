@@ -1,5 +1,4 @@
 import Link from '@/components/shared/Link';
-import Footer from '@/components/shared/Footer';
 import Header from '@/components/shared/Header';
 
 export default function NotFound() {
@@ -14,21 +13,25 @@ export default function NotFound() {
         </div>
         <div className="max-w-md">
           <p className="mb-4 text-xl font-bold leading-normal md:text-2xl">
-            Sorry, we couldn't find this page.
+            Sorry, we couldn&apos;t find this page.
           </p>
           <p className="mb-8">
-            Please head back to the homepage or contact us if you think this is
-            an error.
+            Head back to the sign-in page or go to the dashboard.
           </p>
           <Link
             href="/"
             className="focus:shadow-outline-primary inline rounded-lg border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium leading-5 text-white shadow transition-colors duration-150 hover:bg-primary-700 focus:outline-none dark:hover:bg-primary-500"
           >
-            Back to homepage
+            Back to sign in
+          </Link>
+          <Link
+            href="/dashboard"
+            className="ml-3 inline rounded-lg border border-primary-600 px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20"
+          >
+            Dashboard
           </Link>
         </div>
       </div>
-      <Footer />
     </>
   );
 }

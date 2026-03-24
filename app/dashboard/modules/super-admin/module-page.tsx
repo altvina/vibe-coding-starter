@@ -4,11 +4,15 @@ import { ShieldCheck } from 'lucide-react';
 
 import CustomLink from '@/components/shared/Link';
 import { Button } from '@/components/shared/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/shared/ui/tabs';
 import { cn } from '@/lib/utils';
 
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
 import { useDashboardData } from '@/app/dashboard/dashboard-context';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
+import { ModuleAccessClient } from '@/app/dashboard/module-access/module-access-client';
+import { WorkspaceAdminModulePage } from '@/app/dashboard/modules/workspace-admin/module-page';
+import { IntegrationSettingsCard } from '@/app/dashboard/modules/integrations/integration-settings-card';
 
 const superAdminWorkspaceId = 'ws-superadmin' as const;
 
@@ -43,10 +47,10 @@ export function SuperAdminModulePage() {
 
   return (
     <div className="space-y-4">
-      <DashboardCard title="Super Admin">
+      <DashboardCard title="Super Admin control center">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className={cn('text-sm', dashboardTokens.textMuted)}>
-            Platform-wide controls live in this workspace and are only visible to Super Admins.
+            Manage platform settings, role access, workspace policy, integrations, and operations.
           </div>
           <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 dark:bg-primary-900/20 dark:text-primary-200">
             <ShieldCheck className="h-4 w-4" />
@@ -55,7 +59,7 @@ export function SuperAdminModulePage() {
         </div>
       </DashboardCard>
 
-      <DashboardCard title="Super Admin users (backup requirement)">
+      <DashboardCard title="Super Admin users">
         <div className="space-y-3">
           <p className={cn('text-sm', dashboardTokens.textMuted)}>
             For safety, we require more than one Super Admin user in the simulation so there are backups.
@@ -93,33 +97,73 @@ export function SuperAdminModulePage() {
         </div>
       </DashboardCard>
 
-      <DashboardCard title="Platform controls">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Button asChild className={cn('rounded-full', dashboardTokens.focusRing)}>
-            <CustomLink href="/dashboard/module-access">
-              Manage module access
-            </CustomLink>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className={cn('rounded-full', dashboardTokens.focusRing)}
-          >
-            <CustomLink href="/dashboard/workspace-admin">
-              Manage workspace masking
-            </CustomLink>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className={cn('rounded-full', dashboardTokens.focusRing)}
-          >
-            <CustomLink href="/dashboard/super-admin/sql">
-              SQL console
-            </CustomLink>
-          </Button>
-        </div>
-      </DashboardCard>
+      <Tabs defaultValue="platform" className="space-y-3">
+        <TabsList className={cn('h-auto flex-wrap gap-1 p-1', dashboardTokens.surfaceMuted)}>
+          <TabsTrigger value="platform">Platform</TabsTrigger>
+          <TabsTrigger value="access">Module Access</TabsTrigger>
+          <TabsTrigger value="workspace">Workspace Policy</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="operations">Operations</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="platform" className="space-y-4">
+          <DashboardCard title="Platform overview">
+            <div className="space-y-2">
+              <p className={cn('text-sm', dashboardTokens.textMuted)}>
+                This control center is the authoritative place for all customizable platform
+                behavior.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild className={cn('rounded-full', dashboardTokens.focusRing)}>
+                  <CustomLink href="/dashboard/module-access">Open module access</CustomLink>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn('rounded-full', dashboardTokens.focusRing)}
+                >
+                  <CustomLink href="/dashboard/workspace-admin">
+                    Open workspace policy
+                  </CustomLink>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn('rounded-full', dashboardTokens.focusRing)}
+                >
+                  <CustomLink href="/dashboard/super-admin/sql">Open SQL console</CustomLink>
+                </Button>
+              </div>
+            </div>
+          </DashboardCard>
+        </TabsContent>
+
+        <TabsContent value="access">
+          <ModuleAccessClient />
+        </TabsContent>
+
+        <TabsContent value="workspace">
+          <WorkspaceAdminModulePage />
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <IntegrationSettingsCard />
+        </TabsContent>
+
+        <TabsContent value="operations" className="space-y-4">
+          <DashboardCard title="Operations">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Button
+                asChild
+                variant="outline"
+                className={cn('rounded-full', dashboardTokens.focusRing)}
+              >
+                <CustomLink href="/dashboard/super-admin/sql">SQL console</CustomLink>
+              </Button>
+            </div>
+          </DashboardCard>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

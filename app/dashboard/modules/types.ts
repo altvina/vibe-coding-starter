@@ -12,6 +12,7 @@ export type DashboardModuleId =
   | 'people'
   | 'updates'
   | 'chat'
+  | 'integrations'
   | 'crm'
   | 'clients'
   | 'workspaceAdmin'

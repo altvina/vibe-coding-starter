@@ -57,6 +57,7 @@ export function TopNav({
   const appItems = useMemo(() => {
     const preferredHrefOrder = [
       '/dashboard',
+      '/dashboard/integrations',
       '/dashboard/projects',
       '/dashboard/updates',
       '/dashboard/chat',
