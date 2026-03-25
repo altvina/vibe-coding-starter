@@ -21,7 +21,6 @@ import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import type { DashboardApiResponse } from '@/app/dashboard/dashboard-context';
-import { dashboardIdentitySeeds } from '@/app/dashboard/dashboard-identities';
 import {
   defaultWorkspaceConfig,
   loadWorkspaceConfigFromLocalStorage,
@@ -34,6 +33,10 @@ import {
   loadWorkspaceDirectoryFromBrowser,
   persistWorkspaceDirectory,
 } from '@/app/dashboard/modules/workspace-admin/workspace-directory-client';
+import {
+  collectOwnerProfilesFromBrowser,
+  ownerOptionsFromDirectory,
+} from '@/app/dashboard/modules/workspace-admin/owner-options';
 import { ChevronDown } from 'lucide-react';
 
 export function WorkspaceSettingsTab({
@@ -50,8 +53,18 @@ export function WorkspaceSettingsTab({
 
   useEffect(() => {
     setConfig(loadWorkspaceConfigFromLocalStorage());
-    setDirectory(loadWorkspaceDirectoryFromBrowser());
+    const loadedDirectory = loadWorkspaceDirectoryFromBrowser();
+    const syncedDirectory = collectOwnerProfilesFromBrowser(loadedDirectory);
+    setDirectory(syncedDirectory);
+    if (syncedDirectory !== loadedDirectory) {
+      persistWorkspaceDirectory(syncedDirectory);
+    }
   }, []);
+
+  const ownerOptions = useMemo(
+    () => ownerOptionsFromDirectory(directory),
+    [directory],
+  );
 
   const summary = useMemo(
     () => data.workspaces.find((w) => w.id === workspaceId),
@@ -208,9 +221,9 @@ export function WorkspaceSettingsTab({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {dashboardIdentitySeeds.map((identity) => (
-                  <SelectItem key={identity.id} value={identity.id}>
-                    {identity.name}
+                {ownerOptions.map((owner) => (
+                  <SelectItem key={owner.id} value={owner.id}>
+                    {owner.name}
                   </SelectItem>
                 ))}
               </SelectContent>

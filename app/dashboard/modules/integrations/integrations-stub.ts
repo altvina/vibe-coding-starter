@@ -65,24 +65,8 @@ function defaultLaunchConfig(): IntegrationLaunchConfig {
     },
     workspaceMappings: {
       'ws-acme': {
-        chatTeamSlug: 'acme-logistics',
-        projectsWorkspaceSlug: 'acme-logistics',
-        projectsProjectSlug: 'ops-automation-sprint',
-      },
-      'ws-horizon': {
-        chatTeamSlug: 'horizon-health',
-        projectsWorkspaceSlug: 'horizon-health',
-        projectsProjectSlug: 'growth-analytics-audit',
-      },
-      'ws-vertex': {
-        chatTeamSlug: 'vertex-retail',
-        projectsWorkspaceSlug: 'vertex-retail',
-        projectsProjectSlug: 'pm-playbook-rollout',
-      },
-      'ws-superadmin': {
-        chatTeamSlug: 'platform-admin',
-        projectsWorkspaceSlug: 'platform-admin',
-        projectsProjectSlug: 'platform-operations',
+        chatTeamSlug: 'altvina-workspace',
+        projectsWorkspaceSlug: 'altvina-workspace',
       },
     },
   };

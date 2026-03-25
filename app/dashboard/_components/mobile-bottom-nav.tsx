@@ -6,7 +6,6 @@ import {
   BarChart3,
   Handshake,
   Home,
-  Inbox,
   LayoutGrid,
   MessageSquare,
   MoreHorizontal,
@@ -38,7 +37,6 @@ function iconForHref(href: string) {
   if (href.startsWith('/dashboard/apps')) return LayoutGrid;
   if (href.startsWith('/dashboard/chat')) return MessageSquare;
   if (href.startsWith('/dashboard/people')) return UsersRound;
-  if (href.startsWith('/dashboard/inbox')) return Inbox;
   if (href.startsWith('/dashboard/analytics')) return BarChart3;
   if (href.startsWith('/dashboard/clients')) return Handshake;
   return Home;
@@ -63,7 +61,6 @@ export function MobileBottomNav({
       '/dashboard/apps',
       '/dashboard/projects',
       '/dashboard/people',
-      '/dashboard/inbox',
       '/dashboard/chat',
     ];
 
@@ -79,13 +76,13 @@ export function MobileBottomNav({
   return (
     <nav
       className={cn(
-        'fixed inset-x-0 bottom-0 z-40 border-t',
+        'fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom,0px)]',
         dashboardTokens.surface,
         dashboardTokens.border,
       )}
       aria-label="Dashboard navigation"
     >
-      <div className="mx-auto flex w-full max-w-7xl items-stretch justify-between px-3 py-2">
+      <div className="mx-auto flex w-full max-w-7xl items-stretch justify-between px-2 py-1.5 sm:px-3 sm:py-2">
         {primary.map((t) => {
           const Icon = iconForHref(t.href);
           const active = isActivePath(pathname, t.href);
@@ -94,13 +91,14 @@ export function MobileBottomNav({
               key={t.href}
               href={t.href}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold',
+                /* min-h-[44px] ensures accessible tap target on touch devices */
+                'flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 text-[11px] font-semibold sm:px-3 sm:py-2 sm:text-xs',
                 dashboardTokens.focusRing,
                 active
-                  ? 'bg-primary-600 text-white dark:bg-primary-400 dark:text-slate-950'
+                  ? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-primary-foreground'
                   : cn(
                       dashboardTokens.textMuted,
-                      'hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50',
+                      'hover:bg-accent/50 hover:text-foreground',
                     ),
               )}
               aria-current={active ? 'page' : undefined}

@@ -11,16 +11,18 @@ export const Header = ({ className }: { className?: string }) => {
       withBackground
       variant="primary"
       logoComponent={
-        <div className="flex items-center gap-3 text-primary-600 dark:text-primary-400">
-          <Image
-            src={siteLogos.svg}
-            alt="Altvina logo"
-            width={32}
-            height={32}
-            className="h-8 w-8 shrink-0 invert dark:invert-0"
-            unoptimized
-          />
-          <span className="font-bold text-lg">Altvina</span>
+        <div className="flex items-center gap-3 text-foreground">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-[var(--elevation-soft)] ring-1 ring-border/90">
+            <Image
+              src={siteLogos.png}
+              alt="Altvina logo"
+              width={28}
+              height={28}
+              className="h-7 w-7 shrink-0 object-contain"
+              unoptimized
+            />
+          </div>
+          <span className="text-lg font-bold tracking-tight">Altvina</span>
         </div>
       }
     >

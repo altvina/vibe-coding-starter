@@ -191,7 +191,7 @@ const DashboardDataContext = createContext<DashboardDataState | null>(null);
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const { activeIdentityId } = useDashboardIdentity();
-  const { activeWorkspaceId } = useDashboardWorkspace();
+  const { activeWorkspaceId, setActiveWorkspaceId } = useDashboardWorkspace();
   const [data, setData] = useState<DashboardApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +223,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       }
       const res = await fetch(endpoint, { cache: 'no-store' });
       if (!res.ok) {
+        if (res.status === 403) {
+          const fallbackParams = new URLSearchParams();
+          fallbackParams.set('identityId', activeIdentityId);
+          const delay = searchParams?.get('delay');
+          const fail = searchParams?.get('fail');
+          if (delay) fallbackParams.set('delay', delay);
+          if (fail) fallbackParams.set('fail', fail);
+          const fallbackRes = await fetch(`/api/dashboard?${fallbackParams.toString()}`, {
+            cache: 'no-store',
+          });
+          if (fallbackRes.ok) {
+            const fallbackJson = (await fallbackRes.json()) as DashboardApiResponse;
+            setData(fallbackJson);
+            if (fallbackJson.activeWorkspaceId) {
+              setActiveWorkspaceId(fallbackJson.activeWorkspaceId);
+            }
+            return;
+          }
+        }
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         setError(body?.error ?? 'Failed to load dashboard data.');
         setData(null);
@@ -237,7 +256,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     } finally {
       setIsLoading(false);
     }
-  }, [endpoint]);
+  }, [activeIdentityId, endpoint, searchParams, setActiveWorkspaceId]);
 
   useEffect(() => {
     void refresh();

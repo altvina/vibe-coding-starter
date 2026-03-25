@@ -482,9 +482,9 @@ export function ActionRequestsSection({
           {isLoadingList ? 'Loading…' : loadError ?? 'No action requests yet.'}
         </div>
       ) : viewMode === 'pipeline' ? (
-        <div className="-mx-1 flex gap-3 overflow-x-auto pb-2">
+        <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 snap-x">
           {actionRequestPipelineColumnOrder.map((status) => (
-            <div key={status} className="flex w-[260px] shrink-0 flex-col gap-2">
+            <div key={status} className="flex w-[240px] shrink-0 snap-start flex-col gap-2 sm:w-[260px]">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {actionRequestStatusLabel[status]}
@@ -551,11 +551,11 @@ export function ActionRequestsSection({
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border">
-          <table className="w-full min-w-[800px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[480px] border-collapse text-left text-sm">
             <thead>
               <tr className={cn('h-10 border-b text-[11px] font-semibold uppercase tracking-wide', dashboardTokens.border, dashboardTokens.textSubtle)}>
                 <th className="px-3 py-2">Title</th>
-                <th className="px-3 py-2">Target</th>
+                <th className="hidden px-3 py-2 sm:table-cell">Target</th>
                 <th className="px-3 py-2">
                   <button
                     type="button"
@@ -570,7 +570,7 @@ export function ActionRequestsSection({
                     Priority
                   </button>
                 </th>
-                <th className="px-3 py-2">
+                <th className="hidden px-3 py-2 md:table-cell">
                   <button
                     type="button"
                     className="hover:underline"
@@ -584,9 +584,9 @@ export function ActionRequestsSection({
                     Due
                   </button>
                 </th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Created by</th>
-                <th className="px-3 py-2">Workspace</th>
+                <th className="hidden px-3 py-2 md:table-cell">Status</th>
+                <th className="hidden px-3 py-2 lg:table-cell">Created by</th>
+                <th className="hidden px-3 py-2 lg:table-cell">Workspace</th>
                 <th className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
@@ -614,16 +614,16 @@ export function ActionRequestsSection({
                         {request.title}
                       </button>
                     </td>
-                    <td className={cn('max-w-[180px] truncate px-3 py-1 align-middle text-xs', dashboardTokens.textMuted)}>
+                    <td className={cn('hidden max-w-[180px] truncate px-3 py-1 align-middle text-xs sm:table-cell', dashboardTokens.textMuted)}>
                       {summary}
                     </td>
                     <td className="px-3 py-1 align-middle text-xs">{actionRequestPriorityLabel[request.priority]}</td>
-                    <td className="px-3 py-1 align-middle text-xs">{formatDueDate(request.dueDate) ?? '—'}</td>
-                    <td className="px-3 py-1 align-middle text-xs">{actionRequestStatusLabel[request.status]}</td>
-                    <td className={cn('px-3 py-1 align-middle text-xs', dashboardTokens.textMuted)}>
+                    <td className="hidden px-3 py-1 align-middle text-xs md:table-cell">{formatDueDate(request.dueDate) ?? '—'}</td>
+                    <td className="hidden px-3 py-1 align-middle text-xs md:table-cell">{actionRequestStatusLabel[request.status]}</td>
+                    <td className={cn('hidden px-3 py-1 align-middle text-xs lg:table-cell', dashboardTokens.textMuted)}>
                       {request.createdBy}
                     </td>
-                    <td className={cn('px-3 py-1 align-middle text-xs', dashboardTokens.textMuted)}>{wsName}</td>
+                    <td className={cn('hidden px-3 py-1 align-middle text-xs lg:table-cell', dashboardTokens.textMuted)}>{wsName}</td>
                     <td className="px-3 py-1 text-right align-middle">
                       <Button type="button" variant="ghost" size="sm" className="h-8 rounded-md text-xs" onClick={() => beginEdit(request)}>
                         Edit

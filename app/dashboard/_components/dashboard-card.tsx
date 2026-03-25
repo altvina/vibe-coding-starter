@@ -19,7 +19,8 @@ export function DashboardCard({
       className={cn(dashboardTokens.surface, dashboardTokens.border, dashboardTokens.card, className)}
     >
       {(title || action) && (
-        <header className="flex items-center justify-between gap-3 p-5">
+        /* Header wraps action below title on narrow containers instead of squeezing */
+        <header className="flex flex-wrap items-center justify-between gap-2 p-4 sm:gap-3 sm:p-5">
           {title ? (
             <h2 className={cn('text-sm font-semibold', dashboardTokens.text)}>
               {title}
@@ -31,7 +32,7 @@ export function DashboardCard({
         </header>
       )}
 
-      <div className={cn('p-5', title || action ? 'pt-0' : undefined)}>
+      <div className={cn('p-4 sm:p-5', title || action ? 'pt-0' : undefined)}>
         {children}
       </div>
     </section>

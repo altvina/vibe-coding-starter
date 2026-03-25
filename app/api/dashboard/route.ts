@@ -32,404 +32,30 @@ import { listWorkspaceActionRequests } from '@/lib/server/action-requests-store'
 import { permissionsForMembership } from '@/lib/auth/workspace-rbac';
 import { guardWorkspaceAccess } from '@/lib/auth/require-workspace-access';
 import type { WorkspaceMembership } from '@/lib/auth/workspace-types';
+import { buildWorkspaceSeedWithViewer } from '@/lib/dashboard/build-workspace-seed-with-viewer';
+import { applyMemberAliasesToWorkspaceSeed } from '@/lib/member-duplicates/apply-aliases';
+import { getAppliedAliasesForWorkspace } from '@/lib/server/member-merge-proposals-store';
+import {
+  mergeDirectoryCustomWorkspaceSeeds,
+  ownerDisplayForWorkspaceSeed,
+  resolveWorkspaceSeedById,
+  workspaceLifecycleFromDirectory,
+  workspaceSeeds,
+  type WorkspaceSeed,
+} from '@/lib/dashboard/workspace-seeds';
 
 const inboxPreview = {
   title: 'Inbox',
   messages: [
     {
       id: 'm1',
-      from: 'Altvina Match Team',
-      subject: 'We found 2 experts for your brief',
-      preview: 'Reply to confirm availability and we’ll schedule intros.',
+      from: 'Altvina Workspace',
+      subject: 'Workspace initialized',
+      preview: 'This workspace is ready for real project data.',
       time: '2h',
-    },
-    {
-      id: 'm2',
-      from: 'Acme Logistics',
-      subject: 'Can we tighten the weekly reporting?',
-      preview: 'Looking for a cleaner KPI snapshot for leadership.',
-      time: '1d',
-    },
-    {
-      id: 'm3',
-      from: 'Horizon Health',
-      subject: 'Automation scope follow-up',
-      preview: 'We listed a few workflows—can you pick priorities?',
-      time: '3d',
     },
   ],
 } as const;
-
-type WorkspaceSeed = {
-  id: string;
-  name: string;
-  clientLabel: string;
-  members: Array<{
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    displayName: string;
-    username?: string;
-    role: 'client' | 'expert' | 'staff';
-    headline?: string;
-    title?: string;
-    bio?: string;
-    location?: string;
-    phone?: string;
-    email?: string;
-    linkedInUrl?: string;
-    website?: string;
-    skills?: string;
-    fieldMask?: { name?: boolean; title?: boolean; bio?: boolean };
-  }>;
-  updates: Array<{
-    id: string;
-    authorId: string;
-    createdAt: string;
-    body: string;
-    comments: Array<{ id: string; authorId: string; createdAt: string; body: string }>;
-  }>;
-  projects: Array<{ id: string; name: string; status: 'active' | 'review' | 'done' }>;
-  projectMemberships?: Array<{
-    projectId: string;
-    memberId: string;
-    engagementRole: string;
-  }>;
-  tasks: Array<{
-    id: string;
-    projectId: string;
-    title: string;
-    status: 'todo' | 'doing' | 'blocked' | 'review' | 'done';
-    dueOn?: string;
-    assigneeIds: string[];
-  }>;
-  subtasks: Array<{ id: string; taskId: string; title: string; done: boolean }>;
-};
-
-const workspaceSeeds: WorkspaceSeed[] = [
-  {
-    id: 'ws-superadmin',
-    name: 'Super Admin',
-    clientLabel: 'Platform',
-    members: [
-      {
-        id: 'm-super-1',
-        firstName: 'Avery',
-        lastName: 'Admin',
-        displayName: 'Avery Admin',
-        username: 'avery.admin',
-        role: 'staff',
-        title: 'Super Admin',
-        bio: 'Platform-wide administrator. Keep at least two super admins as backups.',
-        email: 'avery@altvina.com',
-      },
-      {
-        id: 'm-super-2',
-        firstName: 'Morgan',
-        lastName: 'Root',
-        displayName: 'Morgan Root',
-        username: 'morgan.root',
-        role: 'staff',
-        title: 'Super Admin',
-        bio: 'Backup platform admin (simulation).',
-        email: 'morgan@altvina.com',
-      },
-    ],
-    updates: [
-      {
-        id: 'u-sa-1',
-        authorId: 'm-super-1',
-        createdAt: '2026-02-23T10:00:00.000Z',
-        body: 'Super Admin workspace: manage platform-wide access and safety controls here.',
-        comments: [],
-      },
-    ],
-    projects: [],
-    tasks: [],
-    subtasks: [],
-  },
-  {
-    id: 'ws-acme',
-    name: 'Acme Logistics',
-    clientLabel: 'Acme Logistics',
-    members: [
-      {
-        id: 'm-client-1',
-        firstName: 'Jordan',
-        lastName: 'Taylor',
-        displayName: 'Jordan Taylor',
-        username: 'jordan.taylor',
-        role: 'client',
-        title: 'Owner',
-        bio: 'Primary decision maker for the engagement.',
-        email: 'owner@acme-logistics.com',
-      },
-      {
-        id: 'm-client-2',
-        firstName: 'Sam',
-        lastName: 'Lee',
-        displayName: 'Sam Lee',
-        username: 'sam.lee',
-        role: 'client',
-        title: 'Ops Lead',
-        bio: 'Owns day-to-day execution and handoffs.',
-        email: 'ops@acme-logistics.com',
-      },
-      {
-        id: 'm-expert-1',
-        firstName: 'Alex',
-        lastName: 'Morgan',
-        displayName: 'Alex Morgan',
-        username: 'alex.morgan',
-        role: 'expert',
-        headline: 'Fractional COO · Ops & process automation',
-        title: 'Fractional COO',
-        bio: 'Specializes in ops cadence + automation. 10+ years building teams and systems that scale.',
-        location: 'San Francisco, CA',
-        email: 'expert@altvina.pro',
-        skills: 'Operations, Strategy, Process design, Analytics',
-      },
-      {
-        id: 'm-staff-1',
-        firstName: 'Olivia',
-        lastName: 'Rodrigo',
-        displayName: 'Olivia Rodrigo',
-        username: 'olivia.rodrigo',
-        role: 'staff',
-        headline: 'Program Lead · Client success & delivery',
-        title: 'Altvina Program Lead',
-        bio: 'Manages scope, expectations, and comms. Keeps engagements on track and stakeholders aligned.',
-        location: 'New York, NY',
-        email: 'olivia@altvina.com',
-        skills: 'Project management, Client relations, Operations',
-      },
-    ],
-    updates: [
-      {
-        id: 'u-1',
-        authorId: 'm-staff-1',
-        createdAt: '2026-02-22T18:10:00.000Z',
-        body: 'Welcome to the workspace. This feed is the shared conduit for updates—Altvina keeps things clear and controlled.',
-        comments: [
-          {
-            id: 'c-1',
-            authorId: 'm-client-1',
-            createdAt: '2026-02-22T19:02:00.000Z',
-            body: 'Sounds good—weekly snapshot works for us.',
-          },
-        ],
-      },
-      {
-        id: 'u-2',
-        authorId: 'm-expert-1',
-        createdAt: '2026-02-23T16:30:00.000Z',
-        body: 'Drafted the first cadence proposal. Next: confirm the top 3 workflows to automate.',
-        comments: [],
-      },
-    ],
-    projects: [
-      { id: 'p-1', name: 'Ops Automation Sprint', status: 'active' },
-      { id: 'p-2', name: 'Weekly Reporting Cadence', status: 'review' },
-    ],
-    projectMemberships: [
-      { projectId: 'p-1', memberId: 'm-client-1', engagementRole: 'Client' },
-      { projectId: 'p-1', memberId: 'm-client-2', engagementRole: 'Client' },
-      { projectId: 'p-1', memberId: 'm-expert-1', engagementRole: 'Expert' },
-      { projectId: 'p-1', memberId: 'm-staff-1', engagementRole: 'Altvina' },
-      { projectId: 'p-2', memberId: 'm-client-1', engagementRole: 'Client' },
-      { projectId: 'p-2', memberId: 'm-expert-1', engagementRole: 'Partner' },
-      { projectId: 'p-2', memberId: 'm-staff-1', engagementRole: 'Altvina' },
-    ],
-    tasks: [
-      {
-        id: 't-1',
-        projectId: 'p-1',
-        title: 'Map intake → triage → assignment',
-        status: 'doing',
-        dueOn: 'Feb 27, 2026',
-        assigneeIds: ['m-expert-1', 'm-staff-1'],
-      },
-      {
-        id: 't-2',
-        projectId: 'p-1',
-        title: 'Select automation tools (low lift)',
-        status: 'todo',
-        dueOn: 'Feb 28, 2026',
-        assigneeIds: ['m-staff-1'],
-      },
-      {
-        id: 't-3',
-        projectId: 'p-2',
-        title: 'Agree weekly KPI snapshot format',
-        status: 'review',
-        dueOn: 'Mar 02, 2026',
-        assigneeIds: ['m-client-1', 'm-staff-1'],
-      },
-    ],
-    subtasks: [
-      { id: 'st-1', taskId: 't-1', title: 'List current intake channels', done: true },
-      { id: 'st-2', taskId: 't-1', title: 'Draft triage rules', done: false },
-      { id: 'st-3', taskId: 't-3', title: 'Pick KPIs for week 1', done: false },
-    ],
-  },
-  {
-    id: 'ws-horizon',
-    name: 'Horizon Health',
-    clientLabel: 'Horizon Health',
-    members: [
-      { id: 'm-client-3', firstName: 'Casey', lastName: 'Nguyen', displayName: 'Casey Nguyen', username: 'casey.nguyen', role: 'client', title: 'Director', email: 'casey@horizon.example' },
-      { id: 'm-expert-2', firstName: 'Taylor', lastName: 'Kim', displayName: 'Taylor Kim', username: 'taylor.kim', role: 'expert', title: 'Growth Ops', email: 'taylor@altvina.pro' },
-      { id: 'm-staff-1', firstName: 'Olivia', lastName: 'Rodrigo', displayName: 'Olivia Rodrigo', username: 'olivia.rodrigo', role: 'staff', title: 'Altvina Program Lead', email: 'olivia@altvina.com' },
-    ],
-    updates: [
-      {
-        id: 'u-3',
-        authorId: 'm-staff-1',
-        createdAt: '2026-02-21T15:00:00.000Z',
-        body: 'Kickoff complete. Next step: confirm the KPI baseline and target outcome.',
-        comments: [],
-      },
-    ],
-    projects: [{ id: 'p-3', name: 'Growth Analytics Audit', status: 'active' }],
-    tasks: [
-      {
-        id: 't-4',
-        projectId: 'p-3',
-        title: 'Audit funnel + reporting gaps',
-        status: 'doing',
-        dueOn: 'Mar 05, 2026',
-        assigneeIds: ['m-expert-2'],
-      },
-    ],
-    subtasks: [{ id: 'st-4', taskId: 't-4', title: 'Collect existing dashboards', done: false }],
-  },
-  {
-    id: 'ws-vertex',
-    name: 'Vertex Retail',
-    clientLabel: 'Vertex Retail',
-    members: [
-      { id: 'm-client-4', firstName: 'Riley', lastName: 'Park', displayName: 'Riley Park', username: 'riley.park', role: 'client', title: 'VP Ops', email: 'riley@vertex.example' },
-      { id: 'm-expert-1', firstName: 'Alex', lastName: 'Morgan', displayName: 'Alex Morgan', username: 'alex.morgan', role: 'expert', title: 'Fractional COO', email: 'expert@altvina.pro' },
-      { id: 'm-staff-2', firstName: 'Jordan', lastName: 'Smith', displayName: 'Jordan Smith', username: 'jordan.smith', role: 'staff', title: 'Altvina Ops', email: 'ops@altvina.com' },
-    ],
-    updates: [],
-    projects: [{ id: 'p-4', name: 'PM Playbook Rollout', status: 'active' }],
-    tasks: [
-      {
-        id: 't-5',
-        projectId: 'p-4',
-        title: 'Define rituals + templates',
-        status: 'todo',
-        dueOn: 'Mar 07, 2026',
-        assigneeIds: ['m-expert-1', 'm-staff-2'],
-      },
-    ],
-    subtasks: [{ id: 'st-5', taskId: 't-5', title: 'Draft weekly agenda', done: false }],
-  },
-];
-
-function mergeDirectoryCustomWorkspaceSeeds(
-  baseSeeds: WorkspaceSeed[],
-  directory: WorkspaceDirectoryV1 | null,
-): WorkspaceSeed[] {
-  if (!directory?.customWorkspaces?.length) {
-    return baseSeeds;
-  }
-  const existing = new Set(baseSeeds.map((seed) => seed.id));
-  const extras: WorkspaceSeed[] = [];
-  for (const entry of directory.customWorkspaces) {
-    if (existing.has(entry.id)) {
-      continue;
-    }
-    existing.add(entry.id);
-    const owner =
-      dashboardIdentitySeeds.find((identity) => identity.id === entry.ownerIdentityId) ??
-      dashboardIdentitySeeds[0];
-    extras.push({
-      id: entry.id,
-      name: entry.name,
-      clientLabel: entry.clientLabel,
-      members: [
-        {
-          id: `m-${entry.id}-owner`,
-          displayName: owner.name,
-          username: owner.email.split('@')[0]?.replace(/[^a-z0-9._-]/gi, '.') ?? 'owner',
-          role: 'staff',
-          title: 'Workspace owner',
-          bio: entry.description,
-          email: owner.email,
-        },
-      ],
-      updates: [],
-      projects: [],
-      tasks: [],
-      subtasks: [],
-    });
-  }
-  return [...baseSeeds, ...extras];
-}
-
-function applyWorkspaceDirectoryOverridesToSeed(
-  seed: WorkspaceSeed,
-  directory: WorkspaceDirectoryV1 | null,
-): WorkspaceSeed {
-  const override = directory?.seedOverrides?.[seed.id];
-  if (!override) {
-    return seed;
-  }
-  return {
-    ...seed,
-    name: override.name ?? seed.name,
-    clientLabel: override.clientLabel ?? seed.clientLabel,
-  };
-}
-
-function resolveWorkspaceSeedById(
-  workspaceId: string,
-  directory: WorkspaceDirectoryV1 | null,
-  merged: WorkspaceSeed[],
-): WorkspaceSeed | undefined {
-  const raw = merged.find((seed) => seed.id === workspaceId);
-  if (!raw) {
-    return undefined;
-  }
-  return applyWorkspaceDirectoryOverridesToSeed(raw, directory);
-}
-
-function workspaceLifecycleFromDirectory(
-  workspaceId: string,
-  directory: WorkspaceDirectoryV1 | null,
-): 'active' | 'archived' {
-  const custom = directory?.customWorkspaces?.find((entry) => entry.id === workspaceId);
-  if (custom) {
-    return custom.status;
-  }
-  if (directory?.seedOverrides?.[workspaceId]?.status === 'archived') {
-    return 'archived';
-  }
-  return 'active';
-}
-
-function ownerDisplayForWorkspaceSeed(
-  seed: WorkspaceSeed,
-  directory: WorkspaceDirectoryV1 | null,
-): { name: string; identityId: string | null } {
-  const overrideOwner =
-    directory?.seedOverrides?.[seed.id]?.ownerIdentityId ??
-    directory?.customWorkspaces?.find((entry) => entry.id === seed.id)?.ownerIdentityId;
-  if (overrideOwner) {
-    const match = dashboardIdentitySeeds.find((identity) => identity.id === overrideOwner);
-    if (match) {
-      return { name: match.name, identityId: match.id };
-    }
-  }
-  const primaryClient = seed.members.find((member) => member.role === 'client');
-  if (primaryClient) {
-    return { name: primaryClient.displayName, identityId: null };
-  }
-  const staff = seed.members.find((member) => member.role === 'staff');
-  return { name: staff?.displayName ?? '—', identityId: null };
-}
 
 type WorkspaceConfigV1 = {
   version: 1;
@@ -591,6 +217,27 @@ export async function GET(req: NextRequest) {
       mergedWorkspaceSeeds,
     ) ??
     mergedWorkspaceSeeds[0];
+  const customWorkspaceEntry = Boolean(
+    workspaceDirectory?.customWorkspaces?.some((entry) => entry.id === activeWorkspaceId),
+  );
+  const staffMemberIdOverride = membershipSeeds.find(
+    (seed) => seed.workspaceId === activeWorkspaceId,
+  )?.memberIdByAudience?.staff;
+
+  const workspaceSeedWithViewer = buildWorkspaceSeedWithViewer({
+    workspaceSeed,
+    identity,
+    identityId,
+    activeWorkspaceId,
+    activeRole,
+    hasCustomWorkspaceEntry: customWorkspaceEntry,
+    staffMemberIdOverride,
+  });
+
+  const workspaceSeedResolved = applyMemberAliasesToWorkspaceSeed(
+    workspaceSeedWithViewer,
+    getAppliedAliasesForWorkspace(activeWorkspaceId),
+  );
 
   const availableWorkspaces = workspaces.map((workspace) => ({
     id: workspace.id,
@@ -615,8 +262,8 @@ export async function GET(req: NextRequest) {
     membershipSeeds
       .find((seed) => seed.workspaceId === activeWorkspaceId)
       ?.memberIdByAudience?.[currentAudienceRole] ??
-    seedMemberByRole(workspaceSeed, currentAudienceRole)?.id ??
-    workspaceSeed.members[0]?.id ??
+    seedMemberByRole(workspaceSeedResolved, currentAudienceRole)?.id ??
+    workspaceSeedResolved.members[0]?.id ??
     'unknown';
 
   function memberOverride(memberId: string, audience: 'client' | 'expert' | 'staff') {
@@ -684,7 +331,7 @@ export async function GET(req: NextRequest) {
       number
     >;
     const roleLabel: Record<'client' | 'expert' | 'staff', string> = {
-      client: workspaceSeed.clientLabel,
+      client: workspaceSeedResolved.clientLabel,
       expert: 'Expert',
       staff: 'Altvina',
     };
@@ -741,7 +388,7 @@ export async function GET(req: NextRequest) {
       });
   }
 
-  const maskedMembers = maskMembers(workspaceSeed);
+  const maskedMembers = maskMembers(workspaceSeedResolved);
   const members = maskedMembers.map((member) => ({
     id: member.id,
     firstName: member.firstName,
@@ -765,7 +412,7 @@ export async function GET(req: NextRequest) {
     },
   }));
 
-  const updates = workspaceSeed.updates.map((u) => ({
+  const updates = workspaceSeedResolved.updates.map((u) => ({
     id: u.id,
     authorId: u.authorId,
     createdAt: u.createdAt,
@@ -781,10 +428,10 @@ export async function GET(req: NextRequest) {
   const workspace = {
     members,
     updates,
-    projects: workspaceSeed.projects,
-    projectMemberships: buildProjectMemberships(workspaceSeed),
-    tasks: workspaceSeed.tasks,
-    subtasks: workspaceSeed.subtasks,
+    projects: workspaceSeedResolved.projects,
+    projectMemberships: buildProjectMemberships(workspaceSeedResolved),
+    tasks: workspaceSeedResolved.tasks,
+    subtasks: workspaceSeedResolved.subtasks,
   };
 
   let dashboardActionRequests: DashboardActionRequest[] = [];
@@ -798,12 +445,12 @@ export async function GET(req: NextRequest) {
       ...request,
       targetName:
         request.targetId != null
-          ? workspaceSeed.members.find((member) => member.id === request.targetId)
+          ? workspaceSeedResolved.members.find((member) => member.id === request.targetId)
               ?.displayName ?? null
           : null,
     }));
 
-    const membershipByProject = buildProjectMemberships(workspaceSeed);
+    const membershipByProject = buildProjectMemberships(workspaceSeedResolved);
     const viewerProjectIds = new Set(
       membershipByProject
         .filter((membership) => membership.memberId === currentMemberId)
@@ -835,7 +482,7 @@ export async function GET(req: NextRequest) {
   }
 
   const manageProjectsByRole = (() => {
-    const rows = workspaceSeed.tasks.map((t) => {
+    const rows = workspaceSeedResolved.tasks.map((t) => {
       const status =
         t.status === 'done'
           ? 'onReview'
@@ -849,8 +496,14 @@ export async function GET(req: NextRequest) {
 
       return {
         id: `row-${t.id}`,
-        client: { name: workspaceSeed.clientLabel, handle: `@${workspaceSeed.id}` },
-        task: { title: t.title, subtitle: `Project: ${workspaceSeed.projects.find((p) => p.id === t.projectId)?.name ?? '—'}` },
+        client: {
+          name: workspaceSeedResolved.clientLabel,
+          handle: `@${workspaceSeedResolved.id}`,
+        },
+        task: {
+          title: t.title,
+          subtitle: `Project: ${workspaceSeedResolved.projects.find((p) => p.id === t.projectId)?.name ?? '—'}`,
+        },
         dueOn: t.dueOn ?? '—',
         status,
         priority: t.status === 'blocked',
@@ -902,10 +555,7 @@ export async function GET(req: NextRequest) {
     activeRole === 'contractor'
       ? {
           ...inboxPreview,
-          messages: inboxPreview.messages.map((m) => ({
-            ...m,
-            from: m.from === 'Acme Logistics' ? 'Client A' : m.from,
-          })),
+          messages: inboxPreview.messages,
         }
       : inboxPreview;
 

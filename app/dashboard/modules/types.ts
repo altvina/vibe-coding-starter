@@ -8,7 +8,6 @@ import type { WorkspaceRole } from '@/lib/auth/workspace-types';
 export type DashboardModuleId =
   | 'analytics'
   | 'projects'
-  | 'inbox'
   | 'people'
   | 'updates'
   | 'chat'

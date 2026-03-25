@@ -153,7 +153,8 @@ export function UpdatesModulePage() {
             onValueChange={(v) => setFeedFilter(v)}
             className="mt-4"
           >
-            <TabsList className={cn('h-auto flex-wrap gap-1 bg-slate-100 p-1 dark:bg-slate-800', dashboardTokens.border)}>
+            {/* Feed tabs wrap horizontally and scroll when there are many projects */}
+            <TabsList className={cn('h-auto max-w-full flex-wrap gap-1 overflow-x-auto bg-muted/60 p-1 dark:bg-muted/40', dashboardTokens.border)}>
               <TabsTrigger
                 value="workspace"
                 className={cn('gap-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900', dashboardTokens.focusRing)}

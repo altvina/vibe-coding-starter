@@ -35,7 +35,6 @@ import { cn } from '@/lib/utils';
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
 import { useDashboardData } from '@/app/dashboard/dashboard-context';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
-import { dashboardIdentitySeeds } from '@/app/dashboard/dashboard-identities';
 import {
   defaultWorkspaceDirectory,
   type WorkspaceDirectoryV1,
@@ -46,6 +45,10 @@ import {
   persistWorkspaceDirectory,
   syncWorkspaceDirectoryCookieFromStorage,
 } from '@/app/dashboard/modules/workspace-admin/workspace-directory-client';
+import {
+  collectOwnerProfilesFromBrowser,
+  ownerOptionsFromDirectory,
+} from '@/app/dashboard/modules/workspace-admin/owner-options';
 import { ChevronDown } from 'lucide-react';
 
 function formatDate(iso: string) {
@@ -71,10 +74,24 @@ export function AllWorkspacesPage() {
   const [formStatus, setFormStatus] = useState<WorkspaceLifecycleStatus>('active');
   const [formDescription, setFormDescription] = useState('');
   const [formAnalytics, setFormAnalytics] = useState(false);
+  const ownerOptions = useMemo(
+    () => ownerOptionsFromDirectory(directory),
+    [directory],
+  );
+  const defaultOwnerId =
+    ownerOptions.find((option) => option.id === data?.user.id)?.id ??
+    ownerOptions.find((option) => option.id === 'u-admin')?.id ??
+    ownerOptions[0]?.id ??
+    'u-admin';
 
   useEffect(() => {
     syncWorkspaceDirectoryCookieFromStorage();
-    setDirectory(loadWorkspaceDirectoryFromBrowser());
+    const loadedDirectory = loadWorkspaceDirectoryFromBrowser();
+    const syncedDirectory = collectOwnerProfilesFromBrowser(loadedDirectory);
+    setDirectory(syncedDirectory);
+    if (syncedDirectory !== loadedDirectory) {
+      persistWorkspaceDirectory(syncedDirectory);
+    }
   }, []);
 
   const persistDirectory = useCallback((next: WorkspaceDirectoryV1) => {
@@ -96,7 +113,7 @@ export function AllWorkspacesPage() {
   const openCreate = () => {
     setEditingId(null);
     setFormName('');
-    setFormOwner('u-admin');
+    setFormOwner(defaultOwnerId);
     setFormStatus('active');
     setFormDescription('');
     setFormAnalytics(false);
@@ -110,7 +127,11 @@ export function AllWorkspacesPage() {
     }
     setEditingId(id);
     setFormName(w.name);
-    setFormOwner(w.ownerIdentityId ?? 'u-admin');
+    setFormOwner(
+      w.ownerIdentityId && ownerOptions.some((option) => option.id === w.ownerIdentityId)
+        ? w.ownerIdentityId
+        : defaultOwnerId,
+    );
     setFormStatus(w.lifecycleStatus ?? 'active');
     setFormDescription(w.description ?? '');
     const custom = directory.customWorkspaces.find((c) => c.id === id);
@@ -123,6 +144,9 @@ export function AllWorkspacesPage() {
     if (!name) {
       return;
     }
+    const ownerIdentityId = ownerOptions.some((option) => option.id === formOwner)
+      ? formOwner
+      : defaultOwnerId;
     if (editingId) {
       const customIdx = directory.customWorkspaces.findIndex((c) => c.id === editingId);
       if (customIdx >= 0) {
@@ -131,7 +155,7 @@ export function AllWorkspacesPage() {
           ...nextCustom[customIdx],
           name,
           clientLabel: name,
-          ownerIdentityId: formOwner,
+          ownerIdentityId,
           status: formStatus,
           description: formDescription.trim() || undefined,
           analyticsEnabled: formAnalytics,
@@ -147,7 +171,7 @@ export function AllWorkspacesPage() {
               ...prevOv,
               name,
               clientLabel: name,
-              ownerIdentityId: formOwner,
+              ownerIdentityId,
               status: formStatus,
               description: formDescription.trim() || undefined,
             },
@@ -164,7 +188,7 @@ export function AllWorkspacesPage() {
             id,
             name,
             clientLabel: name,
-            ownerIdentityId: formOwner,
+            ownerIdentityId,
             status: formStatus,
             description: formDescription.trim() || undefined,
             createdAt: new Date().toISOString(),
@@ -231,8 +255,7 @@ export function AllWorkspacesPage() {
           <Button
             type="button"
             className={cn(
-              'h-9 gap-1 rounded-full bg-primary-600 px-4 text-xs font-semibold text-white hover:bg-primary-700',
-              'dark:bg-primary-400 dark:text-slate-950 dark:hover:bg-primary-300',
+              'h-9 gap-1 rounded-xl bg-primary-600 px-4 text-xs font-semibold text-white hover:bg-primary-700',
               dashboardTokens.focusRing,
             )}
             onClick={openCreate}
@@ -241,7 +264,7 @@ export function AllWorkspacesPage() {
             Create workspace
           </Button>
         </div>
-        <div className="flex flex-col gap-2 border-b px-4 py-2 sm:flex-row sm:items-center">
+        <div className={cn('flex flex-col gap-2 border-b px-4 py-2 sm:flex-row sm:items-center', dashboardTokens.border)}>
           <div className="relative max-w-md flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 opacity-50" />
             <Input
@@ -253,7 +276,7 @@ export function AllWorkspacesPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[600px] border-collapse text-left text-sm">
             <thead>
               <tr
                 className={cn(
@@ -263,10 +286,10 @@ export function AllWorkspacesPage() {
                 )}
               >
                 <th className="px-4 py-2">Workspace</th>
-                <th className="px-4 py-2">Owner</th>
+                <th className="hidden px-4 py-2 sm:table-cell">Owner</th>
                 <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2 text-right">Members</th>
-                <th className="px-4 py-2">Created</th>
+                <th className="hidden px-4 py-2 text-right md:table-cell">Members</th>
+                <th className="hidden px-4 py-2 lg:table-cell">Created</th>
                 <th className="w-12 px-2 py-2" />
               </tr>
             </thead>
@@ -274,7 +297,7 @@ export function AllWorkspacesPage() {
               {rows.map((w) => (
                 <tr
                   key={w.id}
-                  className={cn('h-[52px] border-b hover:bg-muted/25', dashboardTokens.border)}
+                  className={cn('h-[52px] border-b hover:bg-accent/35', dashboardTokens.border)}
                 >
                   <td className="px-4 py-1 align-middle">
                     <div className="font-medium">{w.name}</div>
@@ -282,7 +305,7 @@ export function AllWorkspacesPage() {
                       {w.source === 'custom' ? 'Custom' : 'Seed'} · {w.clientLabel}
                     </div>
                   </td>
-                  <td className={cn('px-4 py-1 align-middle text-xs', dashboardTokens.textMuted)}>
+                  <td className={cn('hidden px-4 py-1 align-middle text-xs sm:table-cell', dashboardTokens.textMuted)}>
                     {w.ownerName ?? '—'}
                   </td>
                   <td className="px-4 py-1 align-middle">
@@ -290,15 +313,15 @@ export function AllWorkspacesPage() {
                       className={cn(
                         'rounded-full px-2 py-0.5 text-[11px] font-semibold',
                         w.lifecycleStatus === 'archived'
-                          ? 'bg-muted text-muted-foreground'
-                          : 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
+                          ? 'border border-border bg-muted text-muted-foreground'
+                          : 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-400/12 dark:text-emerald-200',
                       )}
                     >
                       {w.lifecycleStatus === 'archived' ? 'Archived' : 'Active'}
                     </span>
                   </td>
-                  <td className="px-4 py-1 text-right align-middle tabular-nums text-xs">{w.memberCount ?? '—'}</td>
-                  <td className={cn('px-4 py-1 align-middle text-xs', dashboardTokens.textMuted)}>
+                  <td className="hidden px-4 py-1 text-right align-middle tabular-nums text-xs md:table-cell">{w.memberCount ?? '—'}</td>
+                  <td className={cn('hidden px-4 py-1 align-middle text-xs lg:table-cell', dashboardTokens.textMuted)}>
                     {w.createdAt ? formatDate(w.createdAt) : '—'}
                   </td>
                   <td className="px-1 py-1 align-middle">
@@ -318,7 +341,7 @@ export function AllWorkspacesPage() {
                         <DropdownMenuItem onClick={() => archiveWorkspace(w.id)}>Archive</DropdownMenuItem>
                         {w.source === 'custom' ? (
                           <DropdownMenuItem
-                            className="text-rose-600 focus:text-rose-600"
+                            className="text-rose-600 focus:text-rose-700 dark:text-rose-300 dark:focus:text-rose-200"
                             onClick={() => deleteCustom(w.id)}
                           >
                             Remove custom workspace
@@ -358,9 +381,9 @@ export function AllWorkspacesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {dashboardIdentitySeeds.map((identity) => (
-                    <SelectItem key={identity.id} value={identity.id}>
-                      {identity.name}
+                  {ownerOptions.map((owner) => (
+                    <SelectItem key={owner.id} value={owner.id}>
+                      {owner.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

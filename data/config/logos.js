@@ -9,8 +9,8 @@
  * via `npm run favicons` (light + dark variants). See scripts/generateFavicons.mjs.
  */
 const siteLogos = {
-  /** Use for header, footer, in-app (no spaces in path for reliable loading) */
-  svg: '/static/images/logo.svg',
+  /** Primary transparent brand mark */
+  svg: '/Logo - White Outline - Drop Shadow - Transparent.svg',
   png: '/Logo - White Outline - Drop Shadow - Transparent.png',
   jpg: '/Logo - White Outline - Drop Shadow - Non Transparent.jpg',
 };

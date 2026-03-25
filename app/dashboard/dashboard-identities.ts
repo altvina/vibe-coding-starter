@@ -10,37 +10,13 @@ export const dashboardIdentityStorageKey = 'altvina.dashboard.identity' as const
 export const dashboardIdentitySeeds: DashboardIdentitySeed[] = [
   {
     id: 'u-admin',
-    name: 'Avery Admin',
-    email: 'avery@altvina.com',
-    initials: 'AA',
-  },
-  {
-    id: 'u-internal',
-    name: 'Olivia Rodrigo',
-    email: 'olivia@altvina.com',
-    initials: 'OR',
-  },
-  {
-    id: 'u-contractor',
-    name: 'Alex Morgan',
-    email: 'expert@altvina.pro',
-    initials: 'AM',
-  },
-  {
-    id: 'u-client',
-    name: 'Jordan Taylor',
-    email: 'owner@acme-logistics.com',
-    initials: 'JT',
-  },
-  {
-    id: 'u-viewer',
-    name: 'Casey Observer',
-    email: 'casey.observer@altvina.com',
-    initials: 'CO',
+    name: 'Jay Newcombe',
+    email: 'jay@altvina.com',
+    initials: 'JN',
   },
 ];
 
-export const defaultDashboardIdentityId = dashboardIdentitySeeds[1].id;
+export const defaultDashboardIdentityId = dashboardIdentitySeeds[0]?.id ?? 'u-admin';
 
 export function isDashboardIdentityId(value: unknown): value is string {
   return (

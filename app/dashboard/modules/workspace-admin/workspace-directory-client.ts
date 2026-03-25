@@ -6,6 +6,7 @@ import {
   encodeWorkspaceDirectoryCookie,
   WORKSPACE_DIRECTORY_COOKIE_KEY,
   WORKSPACE_DIRECTORY_STORAGE_KEY,
+  WORKSPACE_DIRECTORY_VERSION,
   type WorkspaceDirectoryV1,
 } from '@/lib/dashboard/workspace-directory';
 
@@ -15,11 +16,19 @@ function isValidDirectory(value: unknown): value is WorkspaceDirectoryV1 {
   }
   const v = value as WorkspaceDirectoryV1;
   return (
-    v.version === 1 &&
+    v.version === WORKSPACE_DIRECTORY_VERSION &&
     Array.isArray(v.customWorkspaces) &&
     v.seedOverrides != null &&
-    typeof v.seedOverrides === 'object'
+    typeof v.seedOverrides === 'object' &&
+    (v.ownerProfiles == null || typeof v.ownerProfiles === 'object')
   );
+}
+
+function normalizeDirectory(value: WorkspaceDirectoryV1): WorkspaceDirectoryV1 {
+  return {
+    ...value,
+    ownerProfiles: value.ownerProfiles ?? {},
+  };
 }
 
 export function loadWorkspaceDirectoryFromBrowser(): WorkspaceDirectoryV1 {
@@ -32,7 +41,7 @@ export function loadWorkspaceDirectoryFromBrowser(): WorkspaceDirectoryV1 {
     if (!isValidDirectory(parsed)) {
       return defaultWorkspaceDirectory();
     }
-    return parsed;
+    return normalizeDirectory(parsed);
   } catch {
     return defaultWorkspaceDirectory();
   }
@@ -58,7 +67,7 @@ export function syncWorkspaceDirectoryCookieFromStorage() {
     if (!isValidDirectory(parsed)) {
       return;
     }
-    const cookieValue = encodeWorkspaceDirectoryCookie(parsed);
+    const cookieValue = encodeWorkspaceDirectoryCookie(normalizeDirectory(parsed));
     document.cookie = `${WORKSPACE_DIRECTORY_COOKIE_KEY}=${cookieValue}; path=/; SameSite=Lax`;
   } catch {
     /* ignore */

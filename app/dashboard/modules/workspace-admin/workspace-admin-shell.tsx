@@ -20,11 +20,12 @@ import type { DashboardApiResponse } from '@/app/dashboard/dashboard-context';
 import { useDashboardWorkspace } from '@/app/dashboard/dashboard-workspace-context';
 
 import { ActionRequestsSection } from '@/app/dashboard/modules/workspace-admin/action-requests-section';
+import { MemberMergeDuplicatesTab } from '@/app/dashboard/modules/workspace-admin/member-merge-duplicates-tab';
 import { MembersWorkspaceTab } from '@/app/dashboard/modules/workspace-admin/members-tab';
 import { WorkspaceSettingsTab } from '@/app/dashboard/modules/workspace-admin/workspace-settings-tab';
 import { syncWorkspaceDirectoryCookieFromStorage } from '@/app/dashboard/modules/workspace-admin/workspace-directory-client';
 
-const tabs = ['members', 'requests', 'settings'] as const;
+const tabs = ['members', 'duplicates', 'requests', 'settings'] as const;
 export type WorkspaceAdminTabId = (typeof tabs)[number];
 
 function isTab(value: string | null): value is WorkspaceAdminTabId {
@@ -129,25 +130,33 @@ export function WorkspaceAdminShell({
       </header>
 
       <Tabs value={activeTab} onValueChange={(v) => isTab(v) && setTab(v)} className="flex min-h-0 flex-1 flex-col gap-3">
+        {/* Tabs reflow from full-width stacked on mobile to inline on sm+ */}
         <TabsList
           className={cn(
-            'grid h-9 w-full grid-cols-3 rounded-lg border bg-muted/40 p-0.5 sm:w-auto sm:min-w-[420px]',
+            'flex h-auto w-full flex-wrap gap-1 rounded-lg border bg-muted/40 p-1 sm:inline-flex sm:h-9 sm:w-auto sm:flex-nowrap sm:gap-0 sm:p-0.5',
             dashboardTokens.border,
           )}
         >
-          <TabsTrigger value="members" className="rounded-md text-xs font-semibold sm:text-sm">
+          <TabsTrigger value="members" className="min-h-[36px] flex-1 rounded-md text-xs font-semibold sm:flex-none sm:text-sm">
             Members
           </TabsTrigger>
-          <TabsTrigger value="requests" className="rounded-md text-xs font-semibold sm:text-sm">
-            Action requests
+          <TabsTrigger value="duplicates" className="min-h-[36px] flex-1 rounded-md text-xs font-semibold sm:flex-none sm:text-sm">
+            Duplicates
           </TabsTrigger>
-          <TabsTrigger value="settings" className="rounded-md text-xs font-semibold sm:text-sm">
-            Workspace settings
+          <TabsTrigger value="requests" className="min-h-[36px] flex-1 rounded-md text-xs font-semibold sm:flex-none sm:text-sm">
+            Requests
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="min-h-[36px] flex-1 rounded-md text-xs font-semibold sm:flex-none sm:text-sm">
+            Settings
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="members" className="mt-0 min-h-0 flex-1 outline-none">
           <MembersWorkspaceTab data={data} workspaceId={workspaceId} onWorkspaceRefresh={onRefresh} />
+        </TabsContent>
+
+        <TabsContent value="duplicates" className="mt-0 min-h-0 flex-1 outline-none">
+          <MemberMergeDuplicatesTab workspaceId={workspaceId} onWorkspaceRefresh={onRefresh} />
         </TabsContent>
 
         <TabsContent value="requests" className="mt-0 min-h-0 flex-1 outline-none">

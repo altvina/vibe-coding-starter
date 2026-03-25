@@ -14,8 +14,6 @@ import { ModuleAccessClient } from '@/app/dashboard/module-access/module-access-
 import { WorkspaceAdminModulePage } from '@/app/dashboard/modules/workspace-admin/module-page';
 import { IntegrationSettingsCard } from '@/app/dashboard/modules/integrations/integration-settings-card';
 
-const superAdminWorkspaceId = 'ws-superadmin' as const;
-
 export function SuperAdminModulePage() {
   const { data } = useDashboardData();
 
@@ -31,18 +29,11 @@ export function SuperAdminModulePage() {
     );
   }
 
-  if (data.activeWorkspaceId !== superAdminWorkspaceId) {
-    return (
-      <DashboardCard title="Super Admin workspace required">
-        <p className={cn('text-sm', dashboardTokens.textMuted)}>
-          Switch to the <span className="font-semibold">Super Admin</span> workspace to manage platform-wide access.
-        </p>
-      </DashboardCard>
-    );
-  }
-
   const superAdmins = data.workspace.members.filter(
-    (m) => m.role === 'staff' && (m.title ?? '').toLowerCase().includes('super admin'),
+    (m) =>
+      m.role === 'staff' &&
+      ((m.title ?? '').toLowerCase().includes('super admin') ||
+        (m.title ?? '').toLowerCase().includes('owner')),
   );
 
   return (
@@ -62,7 +53,7 @@ export function SuperAdminModulePage() {
       <DashboardCard title="Super Admin users">
         <div className="space-y-3">
           <p className={cn('text-sm', dashboardTokens.textMuted)}>
-            For safety, we require more than one Super Admin user in the simulation so there are backups.
+            Super Admin access is tied to workspace owner-level Altvina accounts.
           </p>
           <div className={cn('rounded-2xl border p-4', dashboardTokens.border)}>
             <div className="flex items-center justify-between gap-3">
@@ -89,7 +80,7 @@ export function SuperAdminModulePage() {
               ))}
               {superAdmins.length < 2 ? (
                 <div className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
-                  Add at least one more Super Admin user (backup). This is seeded in the mock API for now.
+                  Add another owner account if you want a secondary Super Admin backup.
                 </div>
               ) : null}
             </div>
@@ -141,7 +132,7 @@ export function SuperAdminModulePage() {
         </TabsContent>
 
         <TabsContent value="workspace">
-          <WorkspaceAdminModulePage workspaceId={superAdminWorkspaceId} />
+          <WorkspaceAdminModulePage workspaceId={data.activeWorkspaceId} />
         </TabsContent>
 
         <TabsContent value="integrations">
@@ -157,6 +148,17 @@ export function SuperAdminModulePage() {
                 className={cn('rounded-full', dashboardTokens.focusRing)}
               >
                 <CustomLink href="/dashboard/super-admin/sql">SQL console</CustomLink>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className={cn('rounded-full', dashboardTokens.focusRing)}
+              >
+                <CustomLink
+                  href={`/dashboard/workspace-admin/${data.activeWorkspaceId}?tab=duplicates`}
+                >
+                  Duplicate people merges
+                </CustomLink>
               </Button>
             </div>
           </DashboardCard>

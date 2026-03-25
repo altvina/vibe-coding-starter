@@ -58,7 +58,7 @@ export function mergeMembers(args: {
     return { firstName, lastName };
   }
 
-  /** Derive a URL-safe username from a name (e.g. "Jordan Taylor" -> "jordan.taylor"). */
+  /** Derive a URL-safe username from a name (e.g. "Jane Doe" -> "jane.doe"). */
   function deriveUsername(name: string, memberId: string): string {
     const slug = name
       .trim()

@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useDashboardIdentity } from '@/app/dashboard/dashboard-identity-context';
 
 function storageKeyForIdentity(identityId: string) {
-  return `altvina.dashboard.activeWorkspace.${identityId}` as const;
+  return `altvina.dashboard.activeWorkspace.v2.${identityId}` as const;
 }
 
 type WorkspaceState = {

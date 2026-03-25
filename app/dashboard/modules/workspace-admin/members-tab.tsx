@@ -461,10 +461,11 @@ export function MembersWorkspaceTab({
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-3.5 w-3.5 opacity-50" />
+          {/* Saved-view selector & bulk actions wrap below filters on narrow widths */}
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <SlidersHorizontal className="hidden h-3.5 w-3.5 opacity-50 sm:block" />
             <Select value={activeViewId} onValueChange={applyView}>
-              <SelectTrigger className={cn('h-9 w-[160px] rounded-lg text-xs', dashboardTokens.focusRing)}>
+              <SelectTrigger className={cn('h-9 w-full rounded-lg text-xs sm:w-[160px]', dashboardTokens.focusRing)}>
                 <SelectValue placeholder="Saved view" />
               </SelectTrigger>
               <SelectContent>
@@ -476,17 +477,17 @@ export function MembersWorkspaceTab({
                 ))}
               </SelectContent>
             </Select>
-            <Button type="button" variant="outline" size="sm" className="h-9 rounded-md text-xs" onClick={saveCurrentView}>
+            <Button type="button" variant="outline" size="sm" className="h-9 shrink-0 rounded-md text-xs" onClick={saveCurrentView}>
               Save view
             </Button>
+            <Button type="button" variant="outline" size="sm" className="h-9 shrink-0 rounded-md text-xs" onClick={selectAllVisible}>
+              Select all
+            </Button>
           </div>
-          <Button type="button" variant="outline" size="sm" className="h-9 rounded-md text-xs" onClick={selectAllVisible}>
-            Select all
-          </Button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[540px] border-collapse text-left text-sm">
             <thead>
               <tr
                 className={cn(
@@ -499,11 +500,11 @@ export function MembersWorkspaceTab({
                   <span className="sr-only">Select</span>
                 </th>
                 <th className="px-3 py-2">Name</th>
-                <th className="px-3 py-2">Role</th>
-                <th className="px-3 py-2">Organization</th>
-                <th className="px-3 py-2">Visibility</th>
+                <th className="hidden px-3 py-2 sm:table-cell">Role</th>
+                <th className="hidden px-3 py-2 md:table-cell">Organization</th>
+                <th className="hidden px-3 py-2 lg:table-cell">Visibility</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2 text-right">Projects</th>
+                <th className="hidden px-3 py-2 text-right md:table-cell">Projects</th>
                 <th className="w-12 px-2 py-2" />
               </tr>
             </thead>
@@ -553,13 +554,13 @@ export function MembersWorkspaceTab({
                         <div className={cn('truncate text-xs', dashboardTokens.textMuted)}>{m.title}</div>
                       ) : null}
                     </td>
-                    <td className={cn('px-3 py-1 align-middle text-xs', dashboardTokens.textSubtle)}>
+                    <td className={cn('hidden px-3 py-1 align-middle text-xs sm:table-cell', dashboardTokens.textSubtle)}>
                       {directoryMemberRoleSingularLabel(m.role, { workspaceClientLabel })}
                     </td>
-                    <td className={cn('max-w-[160px] truncate px-3 py-1 align-middle text-xs', dashboardTokens.textMuted)}>
+                    <td className={cn('hidden max-w-[160px] truncate px-3 py-1 align-middle text-xs md:table-cell', dashboardTokens.textMuted)}>
                       {org}
                     </td>
-                    <td className="px-3 py-1 align-middle">
+                    <td className="hidden px-3 py-1 align-middle lg:table-cell">
                       <span
                         className={cn(
                           'inline-flex max-w-[200px] truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold',
@@ -579,7 +580,7 @@ export function MembersWorkspaceTab({
                         {m.archived ? 'Archived' : 'Active'}
                       </span>
                     </td>
-                    <td className="px-3 py-1 text-right align-middle text-xs tabular-nums">{nProjects}</td>
+                    <td className="hidden px-3 py-1 text-right align-middle text-xs tabular-nums md:table-cell">{nProjects}</td>
                     <td className="px-1 py-1 align-middle">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -721,7 +722,7 @@ function MemberDetailPanelBody({
             <Input
               value={profile?.organizationLabel ?? ''}
               onChange={(e) => updateProfile({ organizationLabel: e.target.value || undefined })}
-              placeholder="e.g. Acme Logistics"
+              placeholder="e.g. Altvina Workspace"
               className={cn('h-9 rounded-lg text-sm', dashboardTokens.focusRing)}
             />
             <label className={cn('text-[11px] font-medium', dashboardTokens.textSubtle)}>Bio</label>

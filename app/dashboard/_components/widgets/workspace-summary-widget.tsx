@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { directoryMemberRoleCountLabel } from '@/app/dashboard/workspace-role-labels';
 
 type SummaryMetric = {
+  id: string;
   label: string;
   value: number;
 };
@@ -23,15 +24,18 @@ export function WorkspaceSummaryWidget({ data }: { data: DashboardApiResponse })
 
   const metrics: SummaryMetric[] = [
     {
+      id: 'clients',
       label: directoryMemberRoleCountLabel('client', { workspaceClientLabel }),
       value: clientsCount,
     },
-    { label: 'Active Projects', value: activeProjectsCount },
+    { id: 'active-projects', label: 'Active Projects', value: activeProjectsCount },
     {
+      id: 'experts',
       label: directoryMemberRoleCountLabel('expert', { workspaceClientLabel }),
       value: expertsCount,
     },
     {
+      id: 'staff',
       label: directoryMemberRoleCountLabel('staff', { workspaceClientLabel }),
       value: staffCount,
     },
@@ -45,7 +49,7 @@ export function WorkspaceSummaryWidget({ data }: { data: DashboardApiResponse })
       <div className="mt-4 grid grid-cols-2 gap-2">
         {metrics.map((metric) => (
           <div
-            key={metric.label}
+            key={metric.id}
             className={cn(
               'rounded-xl border px-3 py-2',
               dashboardTokens.border,

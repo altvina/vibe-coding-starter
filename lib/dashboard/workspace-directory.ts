@@ -1,4 +1,4 @@
-export const WORKSPACE_DIRECTORY_VERSION = 1 as const;
+export const WORKSPACE_DIRECTORY_VERSION = 2 as const;
 export const WORKSPACE_DIRECTORY_COOKIE_KEY = 'altvina.dashboard.workspaceDirectory' as const;
 export const WORKSPACE_DIRECTORY_STORAGE_KEY = 'altvina.dashboard.workspaceDirectory' as const;
 
@@ -23,10 +23,17 @@ export type WorkspaceDirectorySeedOverride = {
   description?: string;
 };
 
+export type WorkspaceOwnerProfile = {
+  name: string;
+  email?: string;
+  initials?: string;
+};
+
 export type WorkspaceDirectoryV1 = {
   version: typeof WORKSPACE_DIRECTORY_VERSION;
   customWorkspaces: WorkspaceDirectoryCustomEntry[];
   seedOverrides: Record<string, WorkspaceDirectorySeedOverride>;
+  ownerProfiles: Record<string, WorkspaceOwnerProfile>;
 };
 
 export function defaultWorkspaceDirectory(): WorkspaceDirectoryV1 {
@@ -34,6 +41,7 @@ export function defaultWorkspaceDirectory(): WorkspaceDirectoryV1 {
     version: WORKSPACE_DIRECTORY_VERSION,
     customWorkspaces: [],
     seedOverrides: {},
+    ownerProfiles: {},
   };
 }
 
@@ -44,7 +52,7 @@ export function encodeWorkspaceDirectoryCookie(value: WorkspaceDirectoryV1) {
 export function decodeWorkspaceDirectoryCookie(raw: string): WorkspaceDirectoryV1 | null {
   try {
     const decoded = decodeURIComponent(raw);
-    const json = JSON.parse(decoded) as WorkspaceDirectoryV1;
+    const json = JSON.parse(decoded) as Partial<WorkspaceDirectoryV1> | null;
     if (json?.version !== WORKSPACE_DIRECTORY_VERSION) {
       return null;
     }
@@ -54,7 +62,38 @@ export function decodeWorkspaceDirectoryCookie(raw: string): WorkspaceDirectoryV
     if (!json.seedOverrides || typeof json.seedOverrides !== 'object') {
       return null;
     }
-    return json;
+    const ownerProfilesRaw = json.ownerProfiles;
+    const ownerProfiles =
+      ownerProfilesRaw && typeof ownerProfilesRaw === 'object'
+        ? Object.fromEntries(
+            Object.entries(ownerProfilesRaw).flatMap(([id, profile]) => {
+              if (!id || !profile || typeof profile !== 'object') {
+                return [];
+              }
+              const maybeName = (profile as WorkspaceOwnerProfile).name?.trim();
+              if (!maybeName) {
+                return [];
+              }
+              return [
+                [
+                  id,
+                  {
+                    name: maybeName,
+                    email: (profile as WorkspaceOwnerProfile).email?.trim() || undefined,
+                    initials:
+                      (profile as WorkspaceOwnerProfile).initials?.trim() || undefined,
+                  },
+                ],
+              ];
+            }),
+          )
+        : {};
+    return {
+      version: WORKSPACE_DIRECTORY_VERSION,
+      customWorkspaces: json.customWorkspaces,
+      seedOverrides: json.seedOverrides,
+      ownerProfiles,
+    };
   } catch {
     return null;
   }

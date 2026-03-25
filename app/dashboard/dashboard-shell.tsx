@@ -36,14 +36,11 @@ export function DashboardShell({
 
   const tabs = useMemo(() => {
     const enabled = new Set(config.enabledByRole[activeRole] ?? []);
-    const superWorkspaceOnly = new Set(['moduleAccess', 'superAdmin']);
-    const isInSuperWorkspace = data?.activeWorkspaceId === 'ws-superadmin';
     const visibleModules = dashboardModules
       .filter((m) => m.allowedRoles.includes(activeRole))
       .filter((m) => enabled.has(m.id))
       .filter((m) => m.id !== 'updates')
       .filter((m) => (m.id === 'analytics' ? data?.workspaceFeatures.analyticsEnabled : true))
-      .filter((m) => (!superWorkspaceOnly.has(m.id) ? true : isInSuperWorkspace))
       .sort((a, b) => a.navOrder - b.navOrder);
 
     const moduleTabs = visibleModules.map((m) => ({
@@ -51,15 +48,6 @@ export function DashboardShell({
       label: m.label,
       href: m.href,
     }));
-
-    const hasInboxPlaceholder = moduleTabs.some((tab) => tab.href === '/dashboard/inbox');
-    if (!hasInboxPlaceholder) {
-      moduleTabs.push({
-        id: 'inbox',
-        label: 'Inbox',
-        href: '/dashboard/inbox',
-      });
-    }
 
     return [
       { id: 'overview', label: 'Overview', href: '/dashboard' },
@@ -86,8 +74,9 @@ export function DashboardShell({
         </aside>
 
         <div className="flex w-full min-w-0 flex-col">
-          <div className="mx-auto flex w-full max-w-7xl gap-4 px-3 py-3 sm:gap-6 sm:px-6 sm:py-6 lg:px-8">
-            <aside className="hidden w-72 shrink-0 lg:block">
+          {/* Narrower gutter on smaller screens, sidebar shrinks from 288→256px to give main more room */}
+          <div className="mx-auto flex w-full max-w-7xl gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:gap-6 lg:px-8 lg:py-6">
+            <aside className="hidden w-64 shrink-0 lg:block xl:w-72">
               <Sidebar
                 assistant={data?.sidebarAssistant}
                 actionRequests={
@@ -100,7 +89,8 @@ export function DashboardShell({
               />
             </aside>
 
-            <main className="flex min-w-0 flex-1 flex-col gap-4 pb-24 lg:pb-0">
+            {/* pb-24 gives clearance for MobileBottomNav + safe-area on iOS */}
+            <main className="flex min-w-0 flex-1 flex-col gap-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
           <Sheet>
             <div className="sticky top-3 z-40">
               <TopNav
@@ -129,7 +119,7 @@ export function DashboardShell({
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
-                        'flex items-center justify-center rounded-xl border p-2 focus-within:ring-2 focus-within:ring-primary-500/30 focus-within:ring-offset-2 focus-within:ring-offset-slate-100 dark:focus-within:ring-offset-slate-950',
+                        'flex items-center justify-center rounded-xl border p-2 focus-within:ring-2 focus-within:ring-ring/40 focus-within:ring-offset-2 focus-within:ring-offset-background',
                         dashboardTokens.surface,
                         dashboardTokens.border,
                       )}
@@ -201,8 +191,7 @@ export function DashboardShell({
                   type="button"
                   onClick={() => void refresh()}
                   className={cn(
-                    'h-10 rounded-full bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700',
-                    'dark:bg-primary-400 dark:text-slate-950 dark:hover:bg-primary-300',
+                    'h-10 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700',
                     dashboardTokens.focusRing,
                   )}
                 >
@@ -213,26 +202,24 @@ export function DashboardShell({
           ) : null}
 
           {!data && isLoading ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-12">
               {Array.from({ length: 3 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className={cn(idx === 2 ? 'md:col-span-2 lg:col-span-4' : 'lg:col-span-4')}
+                  className={cn(idx === 2 ? 'sm:col-span-2 lg:col-span-4' : 'lg:col-span-4')}
                 >
                   <div
                     className={cn(
-                      'h-28 rounded-2xl border bg-white/60 p-5 shadow-sm animate-pulse',
-                      'dark:bg-slate-900/60',
+                      'h-28 animate-pulse rounded-2xl border bg-card/80 p-5 shadow-[var(--elevation-soft)]',
                       dashboardTokens.border,
                     )}
                   />
                 </div>
               ))}
-              <div className="lg:col-span-8">
+              <div className="sm:col-span-2 lg:col-span-8">
                 <div
                   className={cn(
-                    'h-80 rounded-2xl border bg-white/60 p-5 shadow-sm animate-pulse',
-                    'dark:bg-slate-900/60',
+                    'h-60 animate-pulse rounded-2xl border bg-card/80 p-5 shadow-[var(--elevation-soft)] sm:h-80',
                     dashboardTokens.border,
                   )}
                 />
@@ -240,8 +227,7 @@ export function DashboardShell({
               <div className="lg:col-span-4">
                 <div
                   className={cn(
-                    'h-80 rounded-2xl border bg-white/60 p-5 shadow-sm animate-pulse',
-                    'dark:bg-slate-900/60',
+                    'h-60 animate-pulse rounded-2xl border bg-card/80 p-5 shadow-[var(--elevation-soft)] sm:h-80',
                     dashboardTokens.border,
                   )}
                 />

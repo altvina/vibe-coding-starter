@@ -23,7 +23,6 @@ const preferredHrefOrder = [
   '/dashboard/projects',
   '/dashboard/updates',
   '/dashboard/people',
-  '/dashboard/inbox',
   '/dashboard/analytics',
   '/dashboard/workspaces',
   '/dashboard/workspace-admin',
@@ -74,11 +73,11 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
                     dashboardTokens.border,
                     dashboardTokens.focusRing,
                     active
-                      ? 'border-primary-600 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/10 dark:text-primary-200'
+                      ? 'border-primary-600 bg-primary-50 text-primary-700 dark:border-primary-500/55 dark:bg-primary-500/15 dark:text-primary-200'
                       : cn(
                           dashboardTokens.surface,
                           dashboardTokens.textMuted,
-                          'hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800/40 dark:hover:text-slate-50',
+                          'hover:bg-accent/50 hover:text-foreground',
                         ),
                   )}
                   aria-current={active ? 'page' : undefined}
@@ -87,8 +86,8 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
                     className={cn(
                       'flex h-9 w-9 items-center justify-center rounded-2xl',
                       active
-                        ? 'bg-primary-600 text-white dark:bg-primary-400 dark:text-slate-950'
-                        : 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200',
+                        ? 'bg-primary-600 text-white dark:bg-primary-500 dark:text-primary-foreground'
+                        : 'bg-muted text-slate-700 dark:text-slate-200',
                     )}
                   >
                     <Icon className="h-5 w-5" />

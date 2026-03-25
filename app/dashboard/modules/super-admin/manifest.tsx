@@ -4,19 +4,18 @@ import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import { cn } from '@/lib/utils';
 import type { DashboardModuleDefinition } from '@/app/dashboard/modules/types';
 
-const superAdminWorkspaceId = 'ws-superadmin' as const;
-
 function SuperAdminWidget({ data }: { data: DashboardApiResponse }) {
   const superAdmins = data.workspace.members.filter(
-    (m) => m.role === 'staff' && (m.title ?? '').toLowerCase().includes('super admin'),
+    (m) =>
+      m.role === 'staff' &&
+      ((m.title ?? '').toLowerCase().includes('super admin') ||
+        (m.title ?? '').toLowerCase().includes('owner')),
   );
 
   return (
     <DashboardCard title="Super Admin">
       <div className={cn('text-sm', dashboardTokens.textMuted)}>
-        {data.activeWorkspaceId === superAdminWorkspaceId
-          ? `Super admin workspace • ${superAdmins.length} super admin user${superAdmins.length === 1 ? '' : 's'}`
-          : 'Switch to the Super Admin workspace to manage platform access.'}
+        {`Super Admin access active • ${superAdmins.length} super admin user${superAdmins.length === 1 ? '' : 's'}`}
       </div>
     </DashboardCard>
   );

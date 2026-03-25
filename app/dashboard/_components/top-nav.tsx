@@ -73,7 +73,6 @@ export function TopNav({
       '/dashboard/apps',
       '/dashboard/projects',
       '/dashboard/people',
-      '/dashboard/inbox',
       '/dashboard/chat',
       '/dashboard/analytics',
       '/dashboard/workspaces',
@@ -127,8 +126,9 @@ export function TopNav({
         className={cn(
           'flex items-center justify-between gap-3 rounded-2xl border p-3',
           'backdrop-blur-2xl backdrop-saturate-150',
-          'bg-white/65 dark:bg-slate-950/70',
-          'border-white/25 shadow-lg shadow-black/5 dark:border-white/10 dark:shadow-black/20',
+          'bg-card/85',
+          'shadow-[var(--elevation-soft)]',
+          dashboardTokens.border,
           'transition-all duration-300 ease-out',
         )}
       >
@@ -142,7 +142,7 @@ export function TopNav({
             dashboardTokens.focusRing,
           )}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white dark:bg-primary-400 dark:text-slate-950">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">
             <Sparkles className="h-5 w-5" />
           </span>
           <span className="hidden sm:block">Altvina</span>
@@ -232,36 +232,37 @@ export function TopNav({
       </div>
 
       <div className="flex items-center gap-2">
-        {utilitySlot}
+        {/* Utility buttons collapse to icon-only on narrow viewports */}
+        <div className="hidden sm:flex sm:items-center sm:gap-2">{utilitySlot}</div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                'h-10 gap-3 rounded-xl px-3',
+                'h-10 gap-2 rounded-xl px-2 sm:gap-3 sm:px-3',
                 dashboardTokens.surface,
                 dashboardTokens.border,
                 dashboardTokens.focusRing,
               )}
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 {user?.initials ?? '—'}
               </span>
-              <span className="hidden text-left sm:block">
-                <div className="text-sm font-semibold leading-none">
+              <span className="hidden min-w-0 text-left md:block">
+                <div className="max-w-[8rem] truncate text-sm font-semibold leading-none">
                   {user?.name ?? 'Loading…'}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
-                  <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+                  <div className={cn('max-w-[7rem] truncate text-xs', dashboardTokens.textSubtle)}>
                     {user?.email ?? ' '}
                   </div>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  <span className="hidden shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-200 lg:inline">
                     {getWorkspaceRoleLabel(role, workspaceClientLabel)}
                   </span>
                 </div>
               </span>
-              <ChevronDown className={cn('h-4 w-4', dashboardTokens.textSubtle)} />
+              <ChevronDown className={cn('hidden h-4 w-4 sm:block', dashboardTokens.textSubtle)} />
             </Button>
           </DropdownMenuTrigger>
 

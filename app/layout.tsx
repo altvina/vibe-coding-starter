@@ -1,7 +1,7 @@
 import { Nunito_Sans } from 'next/font/google';
 import { siteConfig } from '@/data/config/site.settings';
 import { ThemeProviders } from './theme-providers';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 
 import { colors } from '@/data/config/colors.js';
 
@@ -31,6 +31,13 @@ for (const variant of Object.keys(globalColors)) {
     style.push(`--${variant}-${color}: ${value}`);
   }
 }
+
+/* Enable viewport-fit=cover so env(safe-area-inset-*) values are non-zero on notched devices */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.siteUrl),
@@ -156,17 +163,17 @@ export default function RootLayout({
         <meta
           name="theme-color"
           media="(prefers-color-scheme: light)"
-          content="#fff"
+          content="#f6f8fb"
         />
         <meta
           name="theme-color"
           media="(prefers-color-scheme: dark)"
-          content="#000"
+          content="#0b1220"
         />
         <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
       </head>
 
-      <body className="flex flex-col bg-white text-black antialiased dark:bg-gray-950 dark:text-white min-h-screen">
+      <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
         <ThemeProviders>
           <AnalyticsWrapper />
           <Toaster />

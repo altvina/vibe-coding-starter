@@ -377,7 +377,8 @@ function PeopleModulePageInner({
               <div className={cn('text-sm', dashboardTokens.textMuted)}>
                 Directory for people, roles, and visibility.
               </div>
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+              {/* Action bar wraps gracefully: search → view toggle → profile/add buttons */}
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:items-center sm:justify-end">
                 <div className="relative w-full sm:max-w-sm">
                   <Search className={cn('absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2', dashboardTokens.textSubtle)} />
                   <input
@@ -454,7 +455,8 @@ function PeopleModulePageInner({
 
         <div className="lg:col-span-12">
           <DashboardCard title="Directory">
-            <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-4">
+            {/* Filters wrap: 1→2→4 columns as width allows */}
+            <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as typeof roleFilter)}>
                 <SelectTrigger className={cn('h-9 rounded-lg text-xs', dashboardTokens.focusRing)}>
                   <SelectValue placeholder="Role" />

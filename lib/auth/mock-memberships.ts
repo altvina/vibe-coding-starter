@@ -55,93 +55,25 @@ const defaultToolAccessByRole: Record<WorkspaceRole, WorkspaceMembership['toolAc
 
 const identityMembershipSeeds: Record<string, MembershipSeed[]> = {
   'u-admin': [
-    { workspaceId: 'ws-superadmin', role: 'admin', status: 'active', toolAccess: defaultToolAccessByRole.admin },
-    { workspaceId: 'ws-acme', role: 'admin', status: 'active', toolAccess: defaultToolAccessByRole.admin },
-    { workspaceId: 'ws-horizon', role: 'admin', status: 'active', toolAccess: defaultToolAccessByRole.admin },
-    { workspaceId: 'ws-vertex', role: 'admin', status: 'active', toolAccess: defaultToolAccessByRole.admin },
-  ],
-  'u-internal': [
     {
       workspaceId: 'ws-acme',
-      role: 'internal',
+      role: 'admin',
       status: 'active',
-      toolAccess: defaultToolAccessByRole.internal,
-      memberIdByAudience: { staff: 'm-staff-1' },
-    },
-    {
-      workspaceId: 'ws-horizon',
-      role: 'internal',
-      status: 'active',
-      toolAccess: defaultToolAccessByRole.internal,
-      memberIdByAudience: { staff: 'm-staff-1' },
-    },
-    {
-      workspaceId: 'ws-vertex',
-      role: 'internal',
-      status: 'invited',
-      toolAccess: defaultToolAccessByRole.internal,
-      memberIdByAudience: { staff: 'm-staff-2' },
-    },
-  ],
-  'u-contractor': [
-    {
-      workspaceId: 'ws-acme',
-      role: 'contractor',
-      status: 'active',
-      toolAccess: defaultToolAccessByRole.contractor,
-      memberIdByAudience: { expert: 'm-expert-1' },
-    },
-    {
-      workspaceId: 'ws-vertex',
-      role: 'contractor',
-      status: 'active',
-      toolAccess: {
-        ...defaultToolAccessByRole.contractor,
-        canManageWorkspaceUsers: false,
+      toolAccess: defaultToolAccessByRole.admin,
+      memberIdByAudience: {
+        staff: 'm-jay-newcombe',
       },
-      memberIdByAudience: { expert: 'm-expert-1' },
-    },
-    {
-      workspaceId: 'ws-horizon',
-      role: 'contractor',
-      status: 'removed',
-      toolAccess: defaultToolAccessByRole.contractor,
-      memberIdByAudience: { expert: 'm-expert-2' },
-    },
-  ],
-  'u-client': [
-    {
-      workspaceId: 'ws-acme',
-      role: 'client',
-      status: 'active',
-      toolAccess: defaultToolAccessByRole.client,
-      memberIdByAudience: { client: 'm-client-1' },
-    },
-  ],
-  'u-viewer': [
-    {
-      workspaceId: 'ws-acme',
-      role: 'viewer',
-      status: 'active',
-      toolAccess: defaultToolAccessByRole.viewer,
-      memberIdByAudience: { client: 'm-client-2' },
-    },
-    {
-      workspaceId: 'ws-horizon',
-      role: 'viewer',
-      status: 'suspended',
-      toolAccess: defaultToolAccessByRole.viewer,
-      memberIdByAudience: { client: 'm-client-3' },
     },
   ],
 };
 
-function appendCustomWorkspaceSeedsForAdmin(
+function appendCustomWorkspaceSeedsForPrivilegedUsers(
   identityId: string,
   baseSeeds: MembershipSeed[],
   directory: WorkspaceDirectoryV1 | null,
 ): MembershipSeed[] {
-  if (!directory?.customWorkspaces?.length || identityId !== 'u-admin') {
+  const isPrivilegedIdentity = identityId === 'u-admin';
+  if (!directory?.customWorkspaces?.length || !isPrivilegedIdentity) {
     return baseSeeds;
   }
   const seen = new Set(baseSeeds.map((seed) => seed.workspaceId));
@@ -153,6 +85,9 @@ function appendCustomWorkspaceSeedsForAdmin(
         workspaceId: workspace.id,
         role: 'admin',
         status: 'active',
+        memberIdByAudience: {
+          staff: `m-${workspace.id}-${identityId}`,
+        },
         toolAccess: defaultToolAccessByRole.admin,
       }),
     );
@@ -164,7 +99,7 @@ export function getMembershipSeedsForIdentity(
   directory: WorkspaceDirectoryV1 | null = null,
 ): MembershipSeed[] {
   const base = identityMembershipSeeds[identityId] ?? [];
-  return appendCustomWorkspaceSeedsForAdmin(identityId, base, directory);
+  return appendCustomWorkspaceSeedsForPrivilegedUsers(identityId, base, directory);
 }
 
 export function getMembershipsForIdentity(

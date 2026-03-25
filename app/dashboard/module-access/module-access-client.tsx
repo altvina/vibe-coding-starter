@@ -28,16 +28,6 @@ export function ModuleAccessClient() {
     );
   }
 
-  if (data.activeWorkspaceId !== 'ws-superadmin') {
-    return (
-      <DashboardCard title="Super Admin workspace required">
-        <p className={cn('text-sm', dashboardTokens.textMuted)}>
-          Switch to the <span className="font-semibold">Super Admin</span> workspace to manage platform-wide access.
-        </p>
-      </DashboardCard>
-    );
-  }
-
   const targetRoles = [
     { id: 'client' as const, label: membershipRoleDisplayLabel('client') },
     { id: 'viewer' as const, label: membershipRoleDisplayLabel('viewer') },

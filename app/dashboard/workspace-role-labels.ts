@@ -17,8 +17,9 @@ export function membershipRoleDisplayLabel(
     case 'contractor':
       return 'Expert';
     case 'internal':
-    case 'admin':
       return 'Altvina';
+    case 'admin':
+      return 'Super Admin';
     case 'viewer':
       return 'Viewer';
     default:

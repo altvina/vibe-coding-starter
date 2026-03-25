@@ -11,20 +11,22 @@ export default function Page() {
       <div className="flex min-h-[calc(100vh-120px)] w-full flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-md space-y-8 text-center">
           <div className="flex justify-center">
-            <Image
-              src={siteLogos.svg}
-              alt="Altvina"
-              width={48}
-              height={48}
-              className="h-12 w-12 shrink-0 invert dark:invert-0"
-              unoptimized
-            />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card shadow-[var(--elevation-soft)] ring-1 ring-border/90">
+              <Image
+                src={siteLogos.png}
+                alt="Altvina logo"
+                width={48}
+                height={48}
+                className="h-12 w-12 shrink-0 object-contain"
+                unoptimized
+              />
+            </div>
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-primary-900 dark:text-primary-100 sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Altvina Dashboard
             </h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-2 text-sm text-slate-600">
               Sign in or create an account to access your workspace.
             </p>
           </div>
@@ -38,7 +40,7 @@ export default function Page() {
             </Button>
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500">
             Authentication and account pages will be added here. For now, both options take you to the dashboard.
           </p>
         </div>

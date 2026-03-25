@@ -54,7 +54,7 @@ export function Sidebar({
     const toSend = (nextPrompt ?? prompt).trim();
     if (!toSend) {
       toast.message('Try asking a specific question.', {
-        description: 'Example: “Draft a weekly update for Acme Logistics.”',
+        description: 'Example: "Draft a weekly update for this workspace."',
       });
       return;
     }
@@ -127,7 +127,7 @@ export function Sidebar({
             dashboardTokens.focusRing,
           )}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white dark:bg-primary-400 dark:text-slate-950">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">
             <Sparkles className="h-5 w-5" />
           </span>
           <span className="text-sm font-semibold">Altvina</span>
@@ -175,13 +175,13 @@ export function Sidebar({
                     key={request.id}
                     href={request.linkTarget}
                     className={cn(
-                      'group min-w-[238px] max-w-[238px] rounded-xl border p-3',
-                      'transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50',
+                      'group w-[220px] min-w-[200px] shrink-0 rounded-xl border p-3 sm:w-[238px]',
+                      'transition-colors hover:bg-accent/40',
                       dashboardTokens.surface,
                       dashboardTokens.border,
                       dashboardTokens.focusRing,
                       isHighPriority
-                        ? 'border-rose-300/90 dark:border-rose-500/50'
+                        ? 'border-rose-300/90 dark:border-rose-400/50'
                         : undefined,
                     )}
                   >
@@ -190,10 +190,10 @@ export function Sidebar({
                         className={cn(
                           'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
                           request.priority === 'high'
-                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-200'
                             : request.priority === 'medium'
-                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
-                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200'
+                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200',
                         )}
                       >
                         {priorityLabel}
@@ -240,7 +240,7 @@ export function Sidebar({
       <div
         className={cn(
           'rounded-2xl p-5 text-white shadow-md',
-          'bg-primary-600 dark:bg-primary-700',
+          'bg-primary-600 dark:bg-primary-500',
         )}
       >
         <div className="space-y-1">
@@ -294,8 +294,7 @@ export function Sidebar({
               }}
               disabled={isSubmitting}
               className={cn(
-                'h-11 w-full rounded-xl bg-white px-4 pr-11 text-sm text-slate-900 placeholder:text-slate-500',
-                'dark:bg-slate-900 dark:text-slate-50 dark:placeholder:text-slate-400',
+                'h-11 w-full rounded-xl bg-white px-4 pr-11 text-sm text-slate-900 placeholder:text-slate-500 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-400',
                 dashboardTokens.focusRing,
                 isSubmitting ? 'opacity-80' : undefined,
               )}
@@ -306,7 +305,7 @@ export function Sidebar({
               disabled={isSubmitting}
               className={cn(
                 'absolute inset-y-0 right-2 my-2 inline-flex w-9 items-center justify-center rounded-lg bg-primary-600 text-white transition-colors hover:bg-primary-700 disabled:opacity-60',
-                'dark:bg-primary-400 dark:text-slate-950 dark:hover:bg-primary-300',
+                'dark:bg-primary-500 dark:hover:bg-primary-400 dark:text-primary-foreground',
                 dashboardTokens.focusRing,
               )}
               aria-label="Send to assistant"

@@ -9,7 +9,6 @@ import {
   Crown,
   Handshake,
   Home,
-  Inbox,
   ListChecks,
   KeyRound,
   MessageSquare,
@@ -43,7 +42,6 @@ export function groupForHref(href: string) {
   }
   if (
     href.startsWith('/dashboard/chat') ||
-    href.startsWith('/dashboard/inbox') ||
     href.startsWith('/dashboard/people')
   ) {
     return 'Collaboration';
@@ -57,7 +55,6 @@ export function iconForHref(href: string) {
   if (href.startsWith('/dashboard/projects')) return ListChecks;
   if (href.startsWith('/dashboard/chat')) return MessageSquare;
   if (href.startsWith('/dashboard/people')) return UsersRound;
-  if (href.startsWith('/dashboard/inbox')) return Inbox;
   if (href.startsWith('/dashboard/analytics')) return BarChart3;
   if (href.startsWith('/dashboard/clients')) return Handshake;
   if (href.startsWith('/dashboard/workspaces')) return Building2;
@@ -74,7 +71,6 @@ const preferredHrefOrder = [
   '/dashboard/apps',
   '/dashboard/projects',
   '/dashboard/people',
-  '/dashboard/inbox',
   '/dashboard/chat',
   '/dashboard/analytics',
   '/dashboard/workspaces',
@@ -122,7 +118,6 @@ export function NavRail({ items }: { items: NavItem[] }) {
           className={cn(
             'group relative flex h-12 w-12 items-center justify-center rounded-2xl',
             'bg-primary-600 text-white shadow-sm transition-all duration-300 ease-out hover:shadow-md active:scale-95',
-            'dark:bg-primary-400 dark:text-slate-950',
             dashboardTokens.focusRing,
           )}
           aria-label="Altvina home"
@@ -145,7 +140,7 @@ export function NavRail({ items }: { items: NavItem[] }) {
       <div className="w-full flex-1 space-y-3">
         {grouped.map(([group, list]) => (
           <div key={group} className="space-y-2">
-            <div className="mx-auto h-px w-10 bg-slate-200/70 dark:bg-slate-700/60" />
+            <div className="mx-auto h-px w-10 bg-border/90" />
             <div className="space-y-1">
               {list.map((i) => {
                 const active = isActivePath(pathname, i.href);
@@ -163,10 +158,9 @@ export function NavRail({ items }: { items: NavItem[] }) {
                       dashboardTokens.focusRing,
                       !active
                         ? cn(
-                            'bg-slate-50 text-slate-700 hover:bg-slate-100',
-                            'dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/60',
+                            'bg-muted text-slate-700 hover:bg-accent dark:text-slate-200 dark:hover:bg-accent/80',
                           )
-                        : 'text-white dark:text-slate-950',
+                        : 'text-white dark:text-primary-foreground',
                     )}
                     aria-label={i.label}
                     aria-current={active ? 'page' : undefined}
@@ -174,7 +168,7 @@ export function NavRail({ items }: { items: NavItem[] }) {
                     {active ? (
                       <motion.span
                         layoutId="nav-rail-active-pill"
-                        className="absolute inset-0 rounded-2xl bg-primary-600 shadow-sm dark:bg-primary-400"
+                        className="absolute inset-0 rounded-2xl bg-primary-600 shadow-sm dark:bg-primary-500"
                         transition={motionTransition}
                       />
                     ) : null}

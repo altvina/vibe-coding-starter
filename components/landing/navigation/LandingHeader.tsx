@@ -35,25 +35,27 @@ export const LandingHeader = ({
   return (
     <nav
       className={clsx(
-        'flex items-center justify-between gap-6 p-4 w-full max-w-full container-narrow lg:rounded-lg',
+        'flex items-center justify-between gap-4 px-3 py-3 w-full max-w-full container-narrow sm:gap-6 sm:p-4 lg:rounded-lg',
         fixed ? 'sticky top-4 left-auto right-auto z-50 backdrop-blur-xl' : '',
-        fixed && !withBackground ? 'bg-white/50 dark:bg-black/20' : '',
+        fixed && !withBackground
+          ? 'bg-card/90 shadow-[var(--elevation-soft)] ring-1 ring-border/90'
+          : '',
         withBackground ? 'lg:m-4 justify-self-center' : '',
         withBackground && variant === 'primary'
-          ? 'bg-primary-100/20 dark:bg-primary-900/20 border border-primary-100/30 dark:border-primary-900/30'
+          ? 'border border-border/90 bg-card/90 shadow-[var(--elevation-soft)]'
           : '',
         withBackground && variant === 'secondary'
-          ? 'bg-secondary-100/20 dark:bg-secondary-900/10 border border-secondary-100/30 dark:border-secondary-900/30'
+          ? 'border border-border/90 bg-muted/80 shadow-[var(--elevation-soft)]'
           : '',
         className,
       )}
     >
       <div className="flex items-center">
-        <Link href="/" className="text-2xl font-bold">
+        <Link href="/" className="text-2xl font-bold text-foreground">
           <div className="flex items-center gap-3 justify-between">
             {logoComponent || (
               <>
-                <OrbitIcon className="h-8 w-8 text-primary-900 dark:text-primary-100" />
+                <OrbitIcon className="h-8 w-8 text-primary-700" />
 
                 <div className="hidden text-2xl font-semibold font-display sm:flex gap-2 h-full">
                   Page <span className="font-bold">UI</span>
@@ -69,9 +71,10 @@ export const LandingHeader = ({
       <div className="md:hidden">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" className="px-3">
+            {/* min-h/min-w 44px for accessible touch target */}
+            <Button variant="outline" className="min-h-[44px] min-w-[44px] px-3">
               <MenuIcon className="h-6 w-6 mr-2" />
-              Menu
+              <span className="hidden xs:inline">Menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="right">
