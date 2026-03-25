@@ -15,13 +15,13 @@ import type { WorkspaceRole } from '@/lib/auth/workspace-types';
 /**
  * Roster rows an admin viewer would see (custom-workspace injection + approved merge aliases).
  */
-export function getAdminWorkspaceRosterForScan(args: {
+export async function getAdminWorkspaceRosterForScan(args: {
   workspaceId: string;
   directory: WorkspaceDirectoryV1 | null;
   identity: DashboardIdentitySeed;
   identityId: string;
   activeRole: WorkspaceRole;
-}): WorkspaceSeedMember[] {
+}): Promise<WorkspaceSeedMember[]> {
   const merged = mergeDirectoryCustomWorkspaceSeeds(workspaceSeeds, args.directory);
   const baseSeed = resolveWorkspaceSeedById(args.workspaceId, args.directory, merged);
   if (!baseSeed) {
@@ -46,6 +46,6 @@ export function getAdminWorkspaceRosterForScan(args: {
     staffMemberIdOverride: staffOverride,
   });
 
-  const aliases = getAppliedAliasesForWorkspace(args.workspaceId);
+  const aliases = await getAppliedAliasesForWorkspace(args.workspaceId);
   return applyMemberAliasesToWorkspaceSeed(withViewer, aliases).members;
 }

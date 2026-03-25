@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { randomUUID } from 'node:crypto';
+import { Pool, type PoolClient } from 'pg';
 
 import { hasWorkspaceRole } from '@/lib/auth/workspace-rbac';
 import type { WorkspaceMembership, WorkspaceRole } from '@/lib/auth/workspace-types';
@@ -8,52 +8,146 @@ import type { MemberForDuplicateDetection, MemberDuplicateCandidate } from '@/li
 import type { MemberMergeApprovalMode, MemberMergeProposalRecord } from '@/lib/member-duplicates/types';
 
 declare global {
-  var __altvinaMemberMergeProposals: MemberMergeProposalRecord[] | undefined;
-  var __altvinaMemberMergeAliases: Record<string, Record<string, string>> | undefined;
+  var __altvinaMemberMergeProposalsPool: Pool | undefined;
 }
 
-function proposalList(): MemberMergeProposalRecord[] {
-  if (!globalThis.__altvinaMemberMergeProposals) {
-    globalThis.__altvinaMemberMergeProposals = [];
+type MemberMergeProposalRow = {
+  id: string;
+  workspace_id: string;
+  canonical_member_id: string;
+  duplicate_member_id: string;
+  signals: unknown;
+  approval_mode: MemberMergeApprovalMode;
+  assigned_approver_identity_id: string | null;
+  authorized_approver_identity_ids: string[] | null;
+  authorized_roles: WorkspaceRole[] | null;
+  status: MemberMergeProposalRecord['status'];
+  decisions: unknown;
+  resolved_at: string | Date | null;
+  resolved_by_identity_id: string | null;
+  created_at: string | Date;
+};
+
+function toIso(value: string | Date | null | undefined) {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+}
+
+function safeSignals(value: unknown): MemberMergeProposalRecord['signals'] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (entry): entry is MemberMergeProposalRecord['signals'][number] =>
+      typeof entry === 'object' &&
+      entry != null &&
+      'kind' in entry &&
+      'detail' in entry &&
+      (entry as { kind?: unknown }).kind !== undefined &&
+      typeof (entry as { detail?: unknown }).detail === 'string',
+  );
+}
+
+function safeDecisions(value: unknown): MemberMergeProposalRecord['decisions'] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (entry): entry is MemberMergeProposalRecord['decisions'][number] =>
+      typeof entry === 'object' &&
+      entry != null &&
+      typeof (entry as { identityId?: unknown }).identityId === 'string' &&
+      typeof (entry as { at?: unknown }).at === 'string' &&
+      ((entry as { action?: unknown }).action === 'approve' ||
+        (entry as { action?: unknown }).action === 'reject'),
+  );
+}
+
+function mapRow(row: MemberMergeProposalRow): MemberMergeProposalRecord {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    createdAt: toIso(row.created_at) ?? new Date().toISOString(),
+    canonicalMemberId: row.canonical_member_id,
+    duplicateMemberId: row.duplicate_member_id,
+    signals: safeSignals(row.signals),
+    approvalMode: row.approval_mode,
+    assignedApproverIdentityId: row.assigned_approver_identity_id ?? undefined,
+    authorizedApproverIdentityIds: row.authorized_approver_identity_ids ?? undefined,
+    authorizedRoles: row.authorized_roles ?? undefined,
+    status: row.status,
+    decisions: safeDecisions(row.decisions),
+    resolvedAt: toIso(row.resolved_at),
+    resolvedByIdentityId: row.resolved_by_identity_id ?? undefined,
+  };
+}
+
+function getPool() {
+  if (globalThis.__altvinaMemberMergeProposalsPool) {
+    return globalThis.__altvinaMemberMergeProposalsPool;
   }
-  return globalThis.__altvinaMemberMergeProposals;
-}
-
-function aliasMap(): Record<string, Record<string, string>> {
-  if (!globalThis.__altvinaMemberMergeAliases) {
-    globalThis.__altvinaMemberMergeAliases = {};
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not configured.');
   }
-  return globalThis.__altvinaMemberMergeAliases;
+  globalThis.__altvinaMemberMergeProposalsPool = new Pool({
+    connectionString,
+    max: 5,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 5_000,
+  });
+  return globalThis.__altvinaMemberMergeProposalsPool;
 }
 
-export function getAppliedAliasesForWorkspace(workspaceId: string): Record<string, string> {
-  const row = aliasMap()[workspaceId];
-  return row ? { ...row } : {};
+export async function getAppliedAliasesForWorkspace(workspaceId: string): Promise<Record<string, string>> {
+  const pool = getPool();
+  const result = await pool.query<{
+    duplicate_member_id: string;
+    canonical_member_id: string;
+  }>(
+    `
+      select duplicate_member_id, canonical_member_id
+      from member_merge_aliases
+      where workspace_id = $1
+    `,
+    [workspaceId],
+  );
+  return result.rows.reduce<Record<string, string>>((acc, row) => {
+    acc[row.duplicate_member_id] = row.canonical_member_id;
+    return acc;
+  }, {});
 }
 
-function proposalKey(workspaceId: string, canonicalId: string, duplicateId: string) {
-  return `${workspaceId}:${canonicalId}:${duplicateId}`;
+export async function listMemberMergeProposalsForWorkspace(
+  workspaceId: string,
+): Promise<MemberMergeProposalRecord[]> {
+  const pool = getPool();
+  const result = await pool.query<MemberMergeProposalRow>(
+    `
+      select *
+      from member_merge_proposals
+      where workspace_id = $1
+      order by created_at desc
+    `,
+    [workspaceId],
+  );
+  return result.rows.map(mapRow);
 }
 
-function existingKeysForWorkspace(workspaceId: string): Set<string> {
-  const keys = new Set<string>();
-  for (const p of proposalList()) {
-    if (p.workspaceId !== workspaceId) continue;
-    if (p.status === 'rejected' || p.status === 'cancelled') continue;
-    keys.add(proposalKey(p.workspaceId, p.canonicalMemberId, p.duplicateMemberId));
-  }
-  return keys;
-}
-
-export function listMemberMergeProposalsForWorkspace(workspaceId: string): MemberMergeProposalRecord[] {
-  return proposalList()
-    .filter((p) => p.workspaceId === workspaceId)
-    .slice()
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-export function getMemberMergeProposal(proposalId: string): MemberMergeProposalRecord | undefined {
-  return proposalList().find((p) => p.id === proposalId);
+export async function getMemberMergeProposal(
+  proposalId: string,
+  client?: PoolClient,
+): Promise<MemberMergeProposalRecord | undefined> {
+  const executor = client ?? getPool();
+  const result = await executor.query<MemberMergeProposalRow>(
+    `
+      select *
+      from member_merge_proposals
+      where id = $1
+      limit 1
+    `,
+    [proposalId],
+  );
+  const row = result.rows[0];
+  return row ? mapRow(row) : undefined;
 }
 
 export type CreateMemberMergeProposalsArgs = {
@@ -68,34 +162,53 @@ export type CreateMemberMergeProposalsArgs = {
 /**
  * Inserts pending proposals for candidates that are not already covered by an open or resolved proposal.
  */
-export function createMemberMergeProposalsFromScan(
+export async function createMemberMergeProposalsFromScan(
   args: CreateMemberMergeProposalsArgs,
-): MemberMergeProposalRecord[] {
-  const existing = existingKeysForWorkspace(args.workspaceId);
+): Promise<MemberMergeProposalRecord[]> {
+  const pool = getPool();
   const created: MemberMergeProposalRecord[] = [];
-  const now = new Date().toISOString();
 
   for (const c of args.candidates) {
-    const key = proposalKey(args.workspaceId, c.canonicalMemberId, c.duplicateMemberId);
-    if (existing.has(key)) continue;
-
-    const dup: MemberMergeProposalRecord = {
-      id: randomUUID(),
-      workspaceId: args.workspaceId,
-      createdAt: now,
-      canonicalMemberId: c.canonicalMemberId,
-      duplicateMemberId: c.duplicateMemberId,
-      signals: c.signals,
-      approvalMode: args.approvalMode,
-      assignedApproverIdentityId: args.assignedApproverIdentityId,
-      authorizedApproverIdentityIds: args.authorizedApproverIdentityIds,
-      authorizedRoles: args.authorizedRoles,
-      status: 'pending',
-      decisions: [],
-    };
-    proposalList().push(dup);
-    existing.add(key);
-    created.push(dup);
+    const inserted = await pool.query<MemberMergeProposalRow>(
+      `
+        insert into member_merge_proposals (
+          workspace_id,
+          canonical_member_id,
+          duplicate_member_id,
+          signals,
+          approval_mode,
+          assigned_approver_identity_id,
+          authorized_approver_identity_ids,
+          authorized_roles,
+          status,
+          decisions
+        )
+        select
+          $1, $2, $3, $4::jsonb, $5, $6, $7::text[], $8::text[], 'pending', '[]'::jsonb
+        where not exists (
+          select 1
+          from member_merge_proposals
+          where workspace_id = $1
+            and least(canonical_member_id, duplicate_member_id) = least($2, $3)
+            and greatest(canonical_member_id, duplicate_member_id) = greatest($2, $3)
+            and status in ('pending', 'approved')
+        )
+        returning *
+      `,
+      [
+        args.workspaceId,
+        c.canonicalMemberId,
+        c.duplicateMemberId,
+        JSON.stringify(c.signals),
+        args.approvalMode,
+        args.assignedApproverIdentityId ?? null,
+        args.authorizedApproverIdentityIds ?? [],
+        args.authorizedRoles ?? [],
+      ],
+    );
+    if (inserted.rows[0]) {
+      created.push(mapRow(inserted.rows[0]));
+    }
   }
 
   return created;
@@ -143,59 +256,139 @@ function canActOnProposal(args: {
   return { ok: true };
 }
 
-export function recordMemberMergeDecision(args: {
+export async function recordMemberMergeDecision(args: {
   proposalId: string;
   identityId: string;
   memberships: WorkspaceMembership[];
   action: 'approve' | 'reject';
-}): { ok: true; proposal: MemberMergeProposalRecord } | { ok: false; reason: string } {
-  const proposal = getMemberMergeProposal(args.proposalId);
-  if (!proposal) {
-    return { ok: false, reason: 'Proposal not found.' };
+}): Promise<{ ok: true; proposal: MemberMergeProposalRecord } | { ok: false; reason: string }> {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const lockResult = await client.query<MemberMergeProposalRow>(
+      `
+        select *
+        from member_merge_proposals
+        where id = $1
+        for update
+      `,
+      [args.proposalId],
+    );
+    const lockedRow = lockResult.rows[0];
+    const proposal = lockedRow ? mapRow(lockedRow) : undefined;
+    if (!proposal) {
+      await client.query('rollback');
+      return { ok: false, reason: 'Proposal not found.' };
+    }
+
+    const gate = canActOnProposal({
+      identityId: args.identityId,
+      memberships: args.memberships,
+      proposal,
+    });
+    if (!gate.ok) {
+      await client.query('rollback');
+      return gate;
+    }
+
+    const at = new Date().toISOString();
+    const decision = JSON.stringify({ identityId: args.identityId, at, action: args.action });
+
+    if (args.action === 'reject') {
+      const updated = await client.query<MemberMergeProposalRow>(
+        `
+          update member_merge_proposals
+          set
+            decisions = coalesce(decisions, '[]'::jsonb) || jsonb_build_array($2::jsonb),
+            status = 'rejected',
+            resolved_at = $3,
+            resolved_by_identity_id = $4,
+            updated_at = now()
+          where id = $1
+          returning *
+        `,
+        [args.proposalId, decision, at, args.identityId],
+      );
+      await client.query('commit');
+      return { ok: true, proposal: mapRow(updated.rows[0]) };
+    }
+
+    await client.query(
+      `
+        insert into member_merge_aliases (
+          workspace_id,
+          duplicate_member_id,
+          canonical_member_id,
+          applied_by_identity_id,
+          applied_at
+        )
+        values ($1, $2, $3, $4, $5)
+        on conflict (workspace_id, duplicate_member_id)
+        do update set
+          canonical_member_id = excluded.canonical_member_id,
+          applied_by_identity_id = excluded.applied_by_identity_id,
+          applied_at = excluded.applied_at
+      `,
+      [
+        proposal.workspaceId,
+        proposal.duplicateMemberId,
+        proposal.canonicalMemberId,
+        args.identityId,
+        at,
+      ],
+    );
+
+    const updated = await client.query<MemberMergeProposalRow>(
+      `
+        update member_merge_proposals
+        set
+          decisions = coalesce(decisions, '[]'::jsonb) || jsonb_build_array($2::jsonb),
+          status = 'approved',
+          resolved_at = $3,
+          resolved_by_identity_id = $4,
+          updated_at = now()
+        where id = $1
+        returning *
+      `,
+      [args.proposalId, decision, at, args.identityId],
+    );
+    await client.query('commit');
+    return { ok: true, proposal: mapRow(updated.rows[0]) };
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
   }
-
-  const gate = canActOnProposal({
-    identityId: args.identityId,
-    memberships: args.memberships,
-    proposal,
-  });
-  if (!gate.ok) {
-    return gate;
-  }
-
-  const at = new Date().toISOString();
-  proposal.decisions.push({ identityId: args.identityId, at, action: args.action });
-
-  if (args.action === 'reject') {
-    proposal.status = 'rejected';
-    proposal.resolvedAt = at;
-    proposal.resolvedByIdentityId = args.identityId;
-    return { ok: true, proposal };
-  }
-
-  const workspaceAliases = aliasMap()[proposal.workspaceId] ?? {};
-  workspaceAliases[proposal.duplicateMemberId] = proposal.canonicalMemberId;
-  aliasMap()[proposal.workspaceId] = workspaceAliases;
-
-  proposal.status = 'approved';
-  proposal.resolvedAt = at;
-  proposal.resolvedByIdentityId = args.identityId;
-  return { ok: true, proposal };
 }
 
-export function cancelMemberMergeProposal(
+export async function cancelMemberMergeProposal(
   proposalId: string,
-): { ok: true; proposal: MemberMergeProposalRecord } | { ok: false; reason: string } {
-  const proposal = getMemberMergeProposal(proposalId);
+): Promise<{ ok: true; proposal: MemberMergeProposalRecord } | { ok: false; reason: string }> {
+  const pool = getPool();
+  const result = await pool.query<MemberMergeProposalRow>(
+    `
+      update member_merge_proposals
+      set
+        status = 'cancelled',
+        resolved_at = now(),
+        updated_at = now()
+      where id = $1
+        and status = 'pending'
+      returning *
+    `,
+    [proposalId],
+  );
+  const row = result.rows[0];
+  if (row) {
+    return { ok: true, proposal: mapRow(row) };
+  }
+  const proposal = await getMemberMergeProposal(proposalId);
   if (!proposal) {
     return { ok: false, reason: 'Proposal not found.' };
   }
-  if (proposal.status !== 'pending') {
-    return { ok: false, reason: 'Only pending proposals can be cancelled.' };
-  }
-  proposal.status = 'cancelled';
-  proposal.resolvedAt = new Date().toISOString();
-  return { ok: true, proposal };
+  return { ok: false, reason: 'Only pending proposals can be cancelled.' };
 }
 
 /** Build detection input from roster rows (admin-visible fields). */
