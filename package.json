@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run appinfo && cross-env PORT=6006 NODE_OPTIONS='--no-warnings' next dev",
+    "dev:clean": "rm -rf .next && npm run dev",
     "build": "npm run appinfo && next build",
     "favicons": "node ./scripts/generateFavicons.mjs",
     "serve": "next start",
