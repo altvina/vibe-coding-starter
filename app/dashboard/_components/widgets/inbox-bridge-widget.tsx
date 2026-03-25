@@ -24,9 +24,9 @@ function attentionLabelFromMessage(args: { subject: string; preview: string; ind
 }
 
 export function InboxBridgeWidget({ data }: { data: DashboardApiResponse }) {
-  const mattermostLaunch = resolveWorkspaceLaunch('chat', data.activeWorkspaceId);
-  const mattermostHref = mattermostLaunch?.url ?? '/dashboard/chat';
-  const external = Boolean(mattermostLaunch?.url);
+  const chatGateway = resolveWorkspaceLaunch('chat', data.activeWorkspaceId);
+  const chatHref = chatGateway?.url ?? '/dashboard/chat';
+  const external = Boolean(chatGateway?.url);
   const actionableMessages = data.inboxPreview.messages.slice(0, 5);
 
   return (
@@ -35,11 +35,11 @@ export function InboxBridgeWidget({ data }: { data: DashboardApiResponse }) {
       action={
         <Button asChild variant="outline" className={cn('h-9 rounded-full px-3 text-xs', dashboardTokens.focusRing)}>
           <a
-            href={mattermostHref}
+            href={chatHref}
             target={external ? '_blank' : undefined}
             rel={external ? 'noopener noreferrer' : undefined}
           >
-            Open in Mattermost
+            Open chat
             <ExternalLink className="ml-1 h-3.5 w-3.5" />
           </a>
         </Button>
@@ -53,7 +53,7 @@ export function InboxBridgeWidget({ data }: { data: DashboardApiResponse }) {
           {actionableMessages.map((message, index) => (
             <a
               key={message.id}
-              href={mattermostHref}
+              href={chatHref}
               target={external ? '_blank' : undefined}
               rel={external ? 'noopener noreferrer' : undefined}
               className={cn(
@@ -88,7 +88,7 @@ export function InboxBridgeWidget({ data }: { data: DashboardApiResponse }) {
                 {message.preview}
               </div>
               <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary-700 dark:text-primary-300">
-                Open in Mattermost
+                Open chat
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </div>
             </a>

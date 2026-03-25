@@ -80,7 +80,7 @@ describe('workspace-scoped RBAC', () => {
     }
   });
 
-  it('keeps client restricted from plane and task creation', () => {
+  it('keeps client restricted from projects gateway and task creation', () => {
     expect(
       hasWorkspacePermission(baseMemberships, 'ws-horizon', 'canAccessPlane'),
     ).toBe(false);

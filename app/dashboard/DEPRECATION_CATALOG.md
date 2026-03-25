@@ -13,7 +13,7 @@ scheduled for full deletion after replacement tooling is finalized.
 - `Projects` internal tool
   - Runtime status: removed from active module registry and replaced by disabled placeholder page.
   - Paths: `app/dashboard/modules/projects`, `app/dashboard/projects/page.tsx`.
-  - Hard-delete trigger: Plane integration confirmed as canonical projects workflow.
+  - Hard-delete trigger: gateway-backed projects experience confirmed as canonical workflow.
 
 - `Inbox` email system
   - Runtime status: inbox icon kept as nav placeholder; email features removed from module behavior.

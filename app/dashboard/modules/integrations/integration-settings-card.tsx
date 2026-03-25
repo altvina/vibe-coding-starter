@@ -32,16 +32,18 @@ export function IntegrationSettingsCard() {
   }
 
   return (
-    <DashboardCard title="Integration launch settings">
+    <DashboardCard title="Gateway launch URLs">
       <div className="space-y-4">
         <p className={cn('text-sm', dashboardTokens.textMuted)}>
-          Configure external launch endpoints and workspace slugs for Mattermost and Plane.
+          Base URLs for chat and projects experiences. The dashboard is the entry point; these
+          values power white-labeled gateway launches (SSO or delegated auth as you wire on the
+          server).
         </p>
 
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <div className="space-y-2">
             <label className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-              Mattermost base URL
+              Chat gateway base URL
             </label>
             <Input
               value={config.baseUrls.chat}
@@ -54,13 +56,13 @@ export function IntegrationSettingsCard() {
                   },
                 })
               }
-              placeholder="https://mattermost.your-domain.com"
+              placeholder="https://chat.your-brand.com"
               className={cn('rounded-xl', dashboardTokens.focusRing)}
             />
           </div>
           <div className="space-y-2">
             <label className={cn('text-xs font-semibold', dashboardTokens.textSubtle)}>
-              Plane base URL
+              Projects gateway base URL
             </label>
             <Input
               value={config.baseUrls.projects}
@@ -73,14 +75,17 @@ export function IntegrationSettingsCard() {
                   },
                 })
               }
-              placeholder="https://plane.your-domain.com"
+              placeholder="https://projects.your-brand.com"
               className={cn('rounded-xl', dashboardTokens.focusRing)}
             />
           </div>
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-sm font-semibold">Workspace mappings</h4>
+          <h4 className="text-sm font-semibold">Workspace path mappings</h4>
+          <p className={cn('text-xs', dashboardTokens.textSubtle)}>
+            Slugs or path segments appended to each gateway URL for this workspace.
+          </p>
           {workspaceIds.map((workspaceId) => {
             const current = config.workspaceMappings[workspaceId] ?? {
               chatTeamSlug: '',
@@ -91,7 +96,7 @@ export function IntegrationSettingsCard() {
             return (
               <div key={workspaceId} className={cn('rounded-xl border p-3', dashboardTokens.border)}>
                 <div className={cn('mb-3 text-xs font-semibold', dashboardTokens.textSubtle)}>
-                  {workspaceId}
+                  {data?.workspaces.find((w) => w.id === workspaceId)?.name ?? workspaceId}
                 </div>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                   <Input
@@ -108,7 +113,7 @@ export function IntegrationSettingsCard() {
                         },
                       })
                     }
-                    placeholder="Mattermost team/channel slug"
+                    placeholder="Chat channel or team slug"
                     className={cn('rounded-xl', dashboardTokens.focusRing)}
                   />
                   <Input
@@ -125,7 +130,7 @@ export function IntegrationSettingsCard() {
                         },
                       })
                     }
-                    placeholder="Plane workspace slug"
+                    placeholder="Projects workspace key"
                     className={cn('rounded-xl', dashboardTokens.focusRing)}
                   />
                   <Input
@@ -142,7 +147,7 @@ export function IntegrationSettingsCard() {
                         },
                       })
                     }
-                    placeholder="Plane project slug (optional)"
+                    placeholder="Default project key (optional)"
                     className={cn('rounded-xl', dashboardTokens.focusRing)}
                   />
                 </div>

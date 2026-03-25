@@ -9,7 +9,7 @@ function ChatWidget({ data }: { data: DashboardApiResponse }) {
   void data;
 
   return (
-    <DashboardCard title="Mattermost">
+    <DashboardCard title="Chat">
       <div className={dashboardTokens.textMuted}>
         <span className="text-sm">
           Team conversations for the active workspace.
@@ -20,7 +20,7 @@ function ChatWidget({ data }: { data: DashboardApiResponse }) {
         className="mt-3 flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400"
       >
         <MessageSquare className="h-4 w-4" />
-        Open Mattermost
+        Open chat
       </CustomLink>
     </DashboardCard>
   );
@@ -28,7 +28,7 @@ function ChatWidget({ data }: { data: DashboardApiResponse }) {
 
 export const chatModule: DashboardModuleDefinition = {
   id: 'chat',
-  label: 'Mattermost',
+  label: 'Chat',
   href: '/dashboard/chat',
   allowedRoles: ['client', 'contractor', 'internal', 'admin'],
   navOrder: 32,
@@ -36,7 +36,7 @@ export const chatModule: DashboardModuleDefinition = {
     {
       id: 'chat.preview',
       moduleId: 'chat',
-      title: 'Mattermost',
+      title: 'Chat',
       href: '/dashboard/chat',
       allowedRoles: ['client', 'contractor', 'internal', 'admin'],
       defaultSize: 'md',

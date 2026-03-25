@@ -70,7 +70,7 @@ export function ToolLaunchSurface({ toolId }: { toolId: IntegrationToolId }) {
             Your workspace role does not include access to this tool.
           </p>
           <p className={cn('text-xs', dashboardTokens.textSubtle)}>
-            Ask a workspace admin to update your tool access for this workspace.
+              Ask a workspace admin to update your access for this workspace.
           </p>
         </div>
       </DashboardCard>
@@ -137,8 +137,8 @@ export function ToolLaunchSurface({ toolId }: { toolId: IntegrationToolId }) {
             )}
           >
             {isPlaceholderLaunchUrl
-              ? 'This tool is not configured yet. Set a real base URL in Super Admin control center, then open in a new tab or load embedded view.'
-              : 'If embedded content is restricted by the external tool, use "Open tool" to continue in a new tab.'}
+              ? 'Gateway URL is still a placeholder. Set real base URLs in the platform control center, then open in a new tab or load embedded view.'
+              : 'If the gateway blocks embedding (e.g. X-Frame-Options), use Open tool to continue in a new tab.'}
           </div>
         </div>
       </DashboardCard>

@@ -25,14 +25,14 @@ const INTEGRATION_CONFIG_STORAGE_KEY = 'altvina.dashboard.integrationLaunchConfi
 export const integrationToolConfigs: Record<IntegrationToolId, IntegrationToolConfig> = {
   chat: {
     id: 'chat',
-    label: 'Mattermost',
-    description: 'Team messaging workspace for the active client context.',
+    label: 'Chat',
+    description: 'Team messaging for this workspace, opened through your gateway.',
     destinationPath: (mapping) => `/channels/${encodeURIComponent(mapping.chatTeamSlug)}`,
   },
   projects: {
     id: 'projects',
-    label: 'Plane',
-    description: 'Project execution workspace for the active client context.',
+    label: 'Projects',
+    description: 'Project delivery for this workspace, opened through your gateway.',
     destinationPath: (mapping) => {
       const workspaceSegment = `/workspace/${encodeURIComponent(mapping.projectsWorkspaceSlug)}`;
       if (!mapping.projectsProjectSlug) {
@@ -57,11 +57,11 @@ function defaultLaunchConfig(): IntegrationLaunchConfig {
       chat:
         process.env.NEXT_PUBLIC_CHAT_BASE_URL?.trim() ??
         process.env.NEXT_PUBLIC_TEAM_MESSAGING_BASE_URL?.trim() ??
-        'https://mattermost.example.com',
+        'https://chat.example.com',
       projects:
         process.env.NEXT_PUBLIC_PROJECTS_BASE_URL?.trim() ??
         process.env.NEXT_PUBLIC_WORK_PLANNING_BASE_URL?.trim() ??
-        'https://plane.example.com',
+        'https://projects.example.com',
     },
     workspaceMappings: {
       'ws-acme': {

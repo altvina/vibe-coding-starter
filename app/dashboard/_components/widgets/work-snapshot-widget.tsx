@@ -55,9 +55,9 @@ function firstAssigneeName(args: {
 }
 
 export function WorkSnapshotWidget({ data }: { data: DashboardApiResponse }) {
-  const planeLaunch = resolveWorkspaceLaunch('projects', data.activeWorkspaceId);
-  const planeHref = planeLaunch?.url ?? '/dashboard/projects';
-  const external = Boolean(planeLaunch?.url);
+  const projectsGateway = resolveWorkspaceLaunch('projects', data.activeWorkspaceId);
+  const projectsHref = projectsGateway?.url ?? '/dashboard/projects';
+  const external = Boolean(projectsGateway?.url);
   const latestWorkspaceUpdateAt = data.workspace.updates[0]?.createdAt;
 
   const activeProjectItems: SnapshotItem[] = data.workspace.projects
@@ -76,7 +76,7 @@ export function WorkSnapshotWidget({ data }: { data: DashboardApiResponse }) {
         statusLabel: project.status === 'review' ? 'In review' : 'Active project',
         owner: projectOwner,
         updatedAtLabel: formatRelativeTime(projectUpdate?.createdAt ?? latestWorkspaceUpdateAt),
-        href: planeHref,
+        href: projectsHref,
         external,
       };
     });
@@ -104,7 +104,7 @@ export function WorkSnapshotWidget({ data }: { data: DashboardApiResponse }) {
         phase: parentProject?.name,
         dueOn: task.dueOn,
         updatedAtLabel: formatRelativeTime(latestWorkspaceUpdateAt),
-        href: planeHref,
+        href: projectsHref,
         external,
       };
     });
@@ -125,11 +125,11 @@ export function WorkSnapshotWidget({ data }: { data: DashboardApiResponse }) {
       action={
         <Button asChild variant="outline" className={cn('h-9 rounded-full px-3 text-xs', dashboardTokens.focusRing)}>
           <a
-            href={planeHref}
+            href={projectsHref}
             target={external ? '_blank' : undefined}
             rel={external ? 'noopener noreferrer' : undefined}
           >
-            Open in Plane
+            Open projects
             <ExternalLink className="ml-1 h-3.5 w-3.5" />
           </a>
         </Button>
