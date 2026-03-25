@@ -21,7 +21,7 @@ export function SuperAdminModulePage() {
 
   if (!data) return null;
 
-  if (data.role !== 'super_admin') {
+  if (data.role !== 'admin') {
     return (
       <DashboardCard title="Super Admin">
         <p className={cn('text-sm', dashboardTokens.textMuted)}>
@@ -122,9 +122,7 @@ export function SuperAdminModulePage() {
                   variant="outline"
                   className={cn('rounded-full', dashboardTokens.focusRing)}
                 >
-                  <CustomLink href="/dashboard/workspace-admin">
-                    Open workspace policy
-                  </CustomLink>
+                  <CustomLink href="/dashboard/workspaces">Open workspaces</CustomLink>
                 </Button>
                 <Button
                   asChild
@@ -143,7 +141,7 @@ export function SuperAdminModulePage() {
         </TabsContent>
 
         <TabsContent value="workspace">
-          <WorkspaceAdminModulePage />
+          <WorkspaceAdminModulePage workspaceId={superAdminWorkspaceId} />
         </TabsContent>
 
         <TabsContent value="integrations">

@@ -26,7 +26,7 @@ export const superAdminModule: DashboardModuleDefinition = {
   id: 'superAdmin',
   label: 'Super Admin',
   href: '/dashboard/super-admin',
-  allowedRoles: ['super_admin'],
+  allowedRoles: ['admin'],
   navOrder: 95,
   widgets: [
     {
@@ -34,7 +34,7 @@ export const superAdminModule: DashboardModuleDefinition = {
       moduleId: 'superAdmin',
       title: 'Super Admin',
       href: '/dashboard/super-admin',
-      allowedRoles: ['super_admin'],
+      allowedRoles: ['admin'],
       defaultSize: 'md',
       render: ({ data }) => <SuperAdminWidget data={data} />,
     },

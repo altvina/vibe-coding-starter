@@ -7,7 +7,7 @@ export const clientsModule: DashboardModuleDefinition = {
   id: 'clients',
   label: 'Clients',
   href: '/dashboard/clients',
-  allowedRoles: ['staff_admin', 'super_admin'],
+  allowedRoles: ['internal', 'admin'],
   navOrder: 20,
   widgets: [
     {
@@ -15,12 +15,12 @@ export const clientsModule: DashboardModuleDefinition = {
       moduleId: 'clients',
       title: 'Clients',
       href: '/dashboard/clients',
-      allowedRoles: ['staff_admin', 'super_admin'],
+      allowedRoles: ['internal', 'admin'],
       defaultSize: 'md',
       render: () => (
         <DashboardCard title="Clients">
           <div className={cn('text-sm', dashboardTokens.textMuted)}>
-            Staff-only view of client relationships.
+            Altvina-only view of client relationships.
           </div>
         </DashboardCard>
       ),

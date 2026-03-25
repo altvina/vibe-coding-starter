@@ -8,6 +8,7 @@ import { useDashboardData } from '@/app/dashboard/dashboard-context';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import { useDashboardWorkspace } from '@/app/dashboard/dashboard-workspace-context';
 import {
+  permissionKeyForTool,
   resolveWorkspaceLaunch,
   type IntegrationToolId,
 } from '@/app/dashboard/modules/integrations/integrations-stub';
@@ -20,6 +21,7 @@ export function ToolLaunchSurface({ toolId }: { toolId: IntegrationToolId }) {
   const [showEmbeddedView, setShowEmbeddedView] = useState(false);
   const [iframeFailed, setIframeFailed] = useState(false);
   const launch = resolveWorkspaceLaunch(toolId, activeWorkspaceId);
+  const hasToolAccess = data?.permissions[permissionKeyForTool(toolId)] ?? false;
   const workspaceName =
     data?.workspaces.find((workspace) => workspace.id === activeWorkspaceId)?.name ??
     'active workspace';
@@ -55,6 +57,21 @@ export function ToolLaunchSurface({ toolId }: { toolId: IntegrationToolId }) {
               Add this workspace to the launch mapping config before opening this tool.
             </p>
           </div>
+        </div>
+      </DashboardCard>
+    );
+  }
+
+  if (!hasToolAccess) {
+    return (
+      <DashboardCard title="Tool access denied">
+        <div className="space-y-3">
+          <p className={cn('text-sm', dashboardTokens.textMuted)}>
+            Your workspace role does not include access to this tool.
+          </p>
+          <p className={cn('text-xs', dashboardTokens.textSubtle)}>
+            Ask a workspace admin to update your tool access for this workspace.
+          </p>
         </div>
       </DashboardCard>
     );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { Menu, Bell, Settings } from 'lucide-react';
 
 import { ThemeSwitch } from '@/components/shared/ThemeSwitch';
@@ -13,7 +14,6 @@ import {
 import { cn } from '@/lib/utils';
 
 import { useDashboardData } from '@/app/dashboard/dashboard-context';
-import { useDashboardRole } from '@/app/dashboard/dashboard-role-context';
 import { useModuleAccess } from '@/app/dashboard/module-access/module-access-context';
 import { dashboardModules } from '@/app/dashboard/modules/registry';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
@@ -29,16 +29,20 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const { data, isLoading, error, refresh } = useDashboardData();
-  const { role } = useDashboardRole();
   const { config } = useModuleAccess();
+  const pathname = usePathname();
+  const activeRole = data?.role ?? 'viewer';
+  const shouldShowSidebarActionRequests = pathname === '/dashboard';
 
   const tabs = useMemo(() => {
-    const enabled = new Set(config.enabledByRole[role] ?? []);
+    const enabled = new Set(config.enabledByRole[activeRole] ?? []);
     const superWorkspaceOnly = new Set(['moduleAccess', 'superAdmin']);
     const isInSuperWorkspace = data?.activeWorkspaceId === 'ws-superadmin';
     const visibleModules = dashboardModules
-      .filter((m) => m.allowedRoles.includes(role))
+      .filter((m) => m.allowedRoles.includes(activeRole))
       .filter((m) => enabled.has(m.id))
+      .filter((m) => m.id !== 'updates')
+      .filter((m) => (m.id === 'analytics' ? data?.workspaceFeatures.analyticsEnabled : true))
       .filter((m) => (!superWorkspaceOnly.has(m.id) ? true : isInSuperWorkspace))
       .sort((a, b) => a.navOrder - b.navOrder);
 
@@ -61,7 +65,12 @@ export function DashboardShell({
       { id: 'overview', label: 'Overview', href: '/dashboard' },
       ...moduleTabs,
     ];
-  }, [config.enabledByRole, data?.activeWorkspaceId, role]);
+  }, [
+    activeRole,
+    config.enabledByRole,
+    data?.activeWorkspaceId,
+    data?.workspaceFeatures.analyticsEnabled,
+  ]);
 
   return (
     <div
@@ -81,6 +90,13 @@ export function DashboardShell({
             <aside className="hidden w-72 shrink-0 lg:block">
               <Sidebar
                 assistant={data?.sidebarAssistant}
+                actionRequests={
+                  shouldShowSidebarActionRequests ? data?.actionRequests : undefined
+                }
+                activeWorkspaceName={
+                  data?.workspaces.find((workspace) => workspace.id === data.activeWorkspaceId)
+                    ?.name
+                }
               />
             </aside>
 
@@ -90,6 +106,7 @@ export function DashboardShell({
               <TopNav
                 tabs={tabs}
                 user={data?.user}
+                role={data?.role}
                 workspaces={data?.workspaces}
                 leadingMobileSlot={
                   <SheetTrigger asChild>
@@ -162,6 +179,13 @@ export function DashboardShell({
                 <Sidebar
                   navItems={tabs}
                   assistant={data?.sidebarAssistant}
+                  actionRequests={
+                    shouldShowSidebarActionRequests ? data?.actionRequests : undefined
+                  }
+                  activeWorkspaceName={
+                    data?.workspaces.find((workspace) => workspace.id === data.activeWorkspaceId)
+                      ?.name
+                  }
                 />
               </div>
             </SheetContent>

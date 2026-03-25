@@ -25,6 +25,7 @@ const preferredHrefOrder = [
   '/dashboard/people',
   '/dashboard/inbox',
   '/dashboard/analytics',
+  '/dashboard/workspaces',
   '/dashboard/workspace-admin',
   '/dashboard/super-admin',
   '/dashboard/module-access',

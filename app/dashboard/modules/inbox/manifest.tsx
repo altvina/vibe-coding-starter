@@ -22,7 +22,7 @@ export const inboxModule: DashboardModuleDefinition = {
   id: 'inbox',
   label: 'Inbox',
   href: '/dashboard/inbox',
-  allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+  allowedRoles: ['client', 'contractor', 'internal', 'admin'],
   navOrder: 35,
   widgets: [
     {
@@ -30,7 +30,7 @@ export const inboxModule: DashboardModuleDefinition = {
       moduleId: 'inbox',
       title: 'Inbox',
       href: '/dashboard/inbox',
-      allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+      allowedRoles: ['client', 'contractor', 'internal', 'admin'],
       defaultSize: 'md',
       render: ({ data }) => <InboxWidget data={data} />,
     },

@@ -30,7 +30,7 @@ export const chatModule: DashboardModuleDefinition = {
   id: 'chat',
   label: 'Mattermost',
   href: '/dashboard/chat',
-  allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+  allowedRoles: ['client', 'contractor', 'internal', 'admin'],
   navOrder: 32,
   widgets: [
     {
@@ -38,7 +38,7 @@ export const chatModule: DashboardModuleDefinition = {
       moduleId: 'chat',
       title: 'Mattermost',
       href: '/dashboard/chat',
-      allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+      allowedRoles: ['client', 'contractor', 'internal', 'admin'],
       defaultSize: 'md',
       render: ({ data }) => <ChatWidget data={data} />,
     },

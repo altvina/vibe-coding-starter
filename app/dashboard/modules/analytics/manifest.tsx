@@ -4,7 +4,7 @@ export const analyticsModule: DashboardModuleDefinition = {
   id: 'analytics',
   label: 'Analytics',
   href: '/dashboard/analytics',
-  allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+  allowedRoles: ['client', 'contractor', 'internal', 'admin'],
   navOrder: 40,
   widgets: [],
 };

@@ -1,10 +1,15 @@
-export type WorkspaceAudience = 'client' | 'expert';
+export type WorkspaceAudience = 'client' | 'expert' | 'staff';
+export type WorkspaceDisplayMode = 'full' | 'masked' | 'hidden';
 
 export type WorkspaceAudienceOverrides = {
+  /** Legacy toggle; retained for backwards compatibility with older local config */
   visible?: boolean;
+  /** Legacy alias key; `maskedName` is the canonical replacement */
   alias?: string;
+  maskedName?: string;
   showTitle?: boolean;
   showBio?: boolean;
+  displayMode?: WorkspaceDisplayMode;
 };
 
 export type WorkspaceMemberOverrides = Partial<Record<WorkspaceAudience, WorkspaceAudienceOverrides>>;
@@ -13,12 +18,26 @@ export type WorkspaceProjectMemberRoleOverride = {
   engagementRole?: string;
 };
 
+export type WorkspaceMemberProfileOverride = {
+  displayName?: string;
+  title?: string;
+  role?: 'client' | 'expert' | 'staff';
+  bio?: string;
+  archived?: boolean;
+  avatarUrl?: string;
+  organizationLabel?: string;
+};
+
 export type WorkspaceConfigV1 = {
   version: 1;
   workspaces: Record<
     string,
     {
       memberOverrides: Record<string, WorkspaceMemberOverrides>;
+      memberProfiles?: Record<string, WorkspaceMemberProfileOverride>;
+      settings?: {
+        analyticsEnabled?: boolean;
+      };
       projectMembershipOverrides?: Record<
         string,
         Record<string, WorkspaceProjectMemberRoleOverride>

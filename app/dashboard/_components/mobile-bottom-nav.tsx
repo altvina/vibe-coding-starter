@@ -3,15 +3,14 @@
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  AppWindow,
   BarChart3,
   Handshake,
   Home,
   Inbox,
+  LayoutGrid,
   MessageSquare,
   MoreHorizontal,
   UsersRound,
-  Workflow,
 } from 'lucide-react';
 
 import CustomLink from '@/components/shared/Link';
@@ -36,10 +35,9 @@ function isActivePath(pathname: string | null, href: string) {
 
 function iconForHref(href: string) {
   if (href === '/dashboard') return Home;
-  if (href.startsWith('/dashboard/integrations')) return AppWindow;
+  if (href.startsWith('/dashboard/apps')) return LayoutGrid;
   if (href.startsWith('/dashboard/chat')) return MessageSquare;
   if (href.startsWith('/dashboard/people')) return UsersRound;
-  if (href.startsWith('/dashboard/updates')) return Workflow;
   if (href.startsWith('/dashboard/inbox')) return Inbox;
   if (href.startsWith('/dashboard/analytics')) return BarChart3;
   if (href.startsWith('/dashboard/clients')) return Handshake;
@@ -62,11 +60,11 @@ export function MobileBottomNav({
 
     const preferredOrder = [
       '/dashboard',
-      '/dashboard/integrations',
-      '/dashboard/chat',
-      '/dashboard/updates',
+      '/dashboard/apps',
+      '/dashboard/projects',
       '/dashboard/people',
       '/dashboard/inbox',
+      '/dashboard/chat',
     ];
 
     const byHref = new Map(unique.map((t) => [t.href, t]));

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { isDashboardRole, type DashboardRole } from '@/app/dashboard/dashboard-roles';
 import { runAdminSql } from '@/lib/server/admin-sql';
+import { isWorkspaceRole, type WorkspaceRole } from '@/lib/auth/workspace-types';
 
 type SqlConfig = {
   enabled: boolean;
@@ -19,14 +19,14 @@ function getConfig(): SqlConfig {
   return { enabled, allowWrites, requireToken };
 }
 
-function getRole(req: NextRequest): DashboardRole | null {
+function getRole(req: NextRequest): WorkspaceRole | null {
   const roleParam = req.nextUrl.searchParams.get('role');
-  if (!isDashboardRole(roleParam)) return null;
+  if (!isWorkspaceRole(roleParam)) return null;
   return roleParam;
 }
 
-function isAdminRole(role: DashboardRole | null) {
-  return role === 'staff_admin' || role === 'super_admin';
+function isAdminRole(role: WorkspaceRole | null) {
+  return role === 'internal' || role === 'admin';
 }
 
 function tokenOk(req: NextRequest) {

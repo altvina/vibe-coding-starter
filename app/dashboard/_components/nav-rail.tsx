@@ -3,9 +3,9 @@
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  AppWindow,
   BarChart3,
-  Briefcase,
+  Building2,
+  LayoutGrid,
   Crown,
   Handshake,
   Home,
@@ -16,7 +16,6 @@ import {
   Sparkles,
   SlidersHorizontal,
   UsersRound,
-  Workflow,
   CircleDashed,
 } from 'lucide-react';
 import { motion, useReducedMotion, type Transition } from 'framer-motion';
@@ -38,14 +37,12 @@ export function groupForHref(href: string) {
   if (
     href.startsWith('/dashboard/projects') ||
     href.startsWith('/dashboard/analytics') ||
-    href.startsWith('/dashboard/integrations')
+    href.startsWith('/dashboard/apps')
   ) {
     return 'Work';
   }
   if (
-    href.startsWith('/dashboard/updates') ||
     href.startsWith('/dashboard/chat') ||
-    href.startsWith('/dashboard/crm') ||
     href.startsWith('/dashboard/inbox') ||
     href.startsWith('/dashboard/people')
   ) {
@@ -56,14 +53,14 @@ export function groupForHref(href: string) {
 
 export function iconForHref(href: string) {
   if (href === '/dashboard') return Home;
-  if (href.startsWith('/dashboard/integrations')) return AppWindow;
+  if (href.startsWith('/dashboard/apps')) return LayoutGrid;
   if (href.startsWith('/dashboard/projects')) return ListChecks;
-  if (href.startsWith('/dashboard/updates')) return Workflow;
   if (href.startsWith('/dashboard/chat')) return MessageSquare;
   if (href.startsWith('/dashboard/people')) return UsersRound;
   if (href.startsWith('/dashboard/inbox')) return Inbox;
   if (href.startsWith('/dashboard/analytics')) return BarChart3;
   if (href.startsWith('/dashboard/clients')) return Handshake;
+  if (href.startsWith('/dashboard/workspaces')) return Building2;
   if (href.startsWith('/dashboard/workspace-admin')) return SlidersHorizontal;
   if (href.startsWith('/dashboard/module-access')) return KeyRound;
   if (href.startsWith('/dashboard/super-admin')) return Crown;
@@ -74,14 +71,13 @@ const groupOrder = ['Home', 'Work', 'Collaboration', 'Admin'] as const;
 
 const preferredHrefOrder = [
   '/dashboard',
-  '/dashboard/integrations',
+  '/dashboard/apps',
   '/dashboard/projects',
-  '/dashboard/updates',
-  '/dashboard/chat',
-  '/dashboard/crm',
   '/dashboard/people',
   '/dashboard/inbox',
+  '/dashboard/chat',
   '/dashboard/analytics',
+  '/dashboard/workspaces',
   '/dashboard/workspace-admin',
   '/dashboard/super-admin',
   '/dashboard/module-access',

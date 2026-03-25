@@ -4,19 +4,24 @@ import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import type { DashboardModuleDefinition } from '@/app/dashboard/modules/types';
 import { Badge } from '@/components/shared/ui/badge';
 import { cn } from '@/lib/utils';
-import { integrationToolConfigs } from '@/app/dashboard/modules/integrations/integrations-stub';
+import {
+  integrationToolConfigs,
+  permissionKeyForTool,
+} from '@/app/dashboard/modules/integrations/integrations-stub';
 
 function IntegrationsWidget({ data }: { data: DashboardApiResponse }) {
   void data;
 
   return (
-    <DashboardCard title="Launch Hub">
+    <DashboardCard title="Apps">
       <div className="space-y-3">
         <p className={cn('text-sm', dashboardTokens.textMuted)}>
-          Launch workspace tools from one place.
+          Connected tools, automations, and data sources in one place.
         </p>
         <div className="space-y-2">
-          {Object.values(integrationToolConfigs).map((tool) => (
+          {Object.values(integrationToolConfigs)
+            .filter((tool) => data.permissions[permissionKeyForTool(tool.id)])
+            .map((tool) => (
             <div
               key={tool.id}
               className={cn(
@@ -37,17 +42,17 @@ function IntegrationsWidget({ data }: { data: DashboardApiResponse }) {
 
 export const integrationsModule: DashboardModuleDefinition = {
   id: 'integrations',
-  label: 'Launch Hub',
-  href: '/dashboard/integrations',
-  allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
-  navOrder: 15,
+  label: 'Apps',
+  href: '/dashboard/apps',
+  allowedRoles: ['client', 'contractor', 'internal', 'admin'],
+  navOrder: 10,
   widgets: [
     {
       id: 'integrations.launchpad',
       moduleId: 'integrations',
-      title: 'Launch Hub',
-      href: '/dashboard/integrations',
-      allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+      title: 'Apps',
+      href: '/dashboard/apps',
+      allowedRoles: ['client', 'contractor', 'internal', 'admin'],
       defaultSize: 'md',
       render: ({ data }) => <IntegrationsWidget data={data} />,
     },

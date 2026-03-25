@@ -67,7 +67,7 @@ export function SuperAdminSqlConsolePage() {
   const helperText = useMemo(() => {
     if (!config) return 'Loading configuration…';
     if (!config.enabled) return 'Admin SQL is disabled (set ADMIN_SQL_ENABLED=true).';
-    if (!config.allowed) return 'Only staff_admin / super_admin roles can use this console.';
+    if (!config.allowed) return 'Only internal/admin workspace roles can use this console.';
     if (config.requireToken) return 'Token required (set ADMIN_SQL_TOKEN).';
     return 'Read-only by default (SELECT / WITH / EXPLAIN).';
   }, [config]);
@@ -108,7 +108,7 @@ export function SuperAdminSqlConsolePage() {
 
   if (!data) return null;
 
-  if (data.role !== 'super_admin' && data.role !== 'staff_admin') {
+  if (data.role !== 'admin' && data.role !== 'internal') {
     return (
       <DashboardCard title="SQL Console">
         <div className={cn('text-sm', dashboardTokens.textMuted)}>

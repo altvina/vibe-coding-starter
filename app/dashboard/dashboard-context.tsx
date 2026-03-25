@@ -8,9 +8,20 @@ import type {
   ProjectRow,
 } from '@/app/dashboard/dashboard-data';
 import type { DashboardCapabilities } from '@/app/dashboard/dashboard-permissions';
-import type { DashboardRole } from '@/app/dashboard/dashboard-roles';
-import { useDashboardRole } from '@/app/dashboard/dashboard-role-context';
+import { useDashboardIdentity } from '@/app/dashboard/dashboard-identity-context';
 import { useDashboardWorkspace } from '@/app/dashboard/dashboard-workspace-context';
+import type {
+  WorkspaceMembership,
+  WorkspacePermissions,
+  WorkspaceRole,
+  WorkspaceSummary as RbacWorkspaceSummary,
+} from '@/lib/auth/workspace-types';
+import type { DashboardActionRequest } from '@/lib/action-requests';
+import {
+  loadWorkspaceConfigFromLocalStorage,
+  setWorkspaceConfigCookie,
+} from '@/app/dashboard/modules/workspace-admin/workspace-config';
+import { syncWorkspaceDirectoryCookieFromStorage } from '@/app/dashboard/modules/workspace-admin/workspace-directory-client';
 
 export type DashboardKpi = {
   id: string;
@@ -22,6 +33,7 @@ export type DashboardKpi = {
 };
 
 export type DashboardUser = {
+  id: string;
   name: string;
   email: string;
   initials: string;
@@ -39,6 +51,14 @@ export type WorkspaceSummary = {
   id: string;
   name: string;
   clientLabel: string;
+  slug?: string;
+  memberCount?: number;
+  ownerName?: string;
+  ownerIdentityId?: string;
+  lifecycleStatus?: 'active' | 'archived';
+  description?: string;
+  createdAt?: string;
+  source?: 'seed' | 'custom';
 };
 
 export type WorkspaceMember = {
@@ -121,9 +141,13 @@ export type WorkspaceDetail = {
 };
 
 export type DashboardApiResponse = {
-  role: DashboardRole;
+  role: WorkspaceRole;
+  permissions: WorkspacePermissions;
   capabilities: DashboardCapabilities;
   user: DashboardUser;
+  activeMembership: WorkspaceMembership;
+  memberships: WorkspaceMembership[];
+  availableWorkspaces: RbacWorkspaceSummary[];
   kpis: DashboardKpi[];
   manageProjects: {
     title: string;
@@ -148,7 +172,11 @@ export type DashboardApiResponse = {
   };
   workspaces: WorkspaceSummary[];
   activeWorkspaceId: string;
+  workspaceFeatures: {
+    analyticsEnabled: boolean;
+  };
   workspace: WorkspaceDetail;
+  actionRequests: DashboardActionRequest[];
 };
 
 type DashboardDataState = {
@@ -162,7 +190,7 @@ const DashboardDataContext = createContext<DashboardDataState | null>(null);
 
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
-  const { role } = useDashboardRole();
+  const { activeIdentityId } = useDashboardIdentity();
   const { activeWorkspaceId } = useDashboardWorkspace();
   const [data, setData] = useState<DashboardApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,18 +200,27 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const delay = searchParams?.get('delay');
     const fail = searchParams?.get('fail');
     const params = new URLSearchParams();
-    params.set('role', role);
+    params.set('identityId', activeIdentityId);
     params.set('workspaceId', activeWorkspaceId);
     if (delay) params.set('delay', delay);
     if (fail) params.set('fail', fail);
     const suffix = params.toString();
     return suffix ? `/api/dashboard?${suffix}` : '/api/dashboard';
-  }, [activeWorkspaceId, role, searchParams]);
+  }, [activeIdentityId, activeWorkspaceId, searchParams]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
+      if (typeof window !== 'undefined') {
+        try {
+          const workspaceConfig = loadWorkspaceConfigFromLocalStorage();
+          setWorkspaceConfigCookie(workspaceConfig);
+          syncWorkspaceDirectoryCookieFromStorage();
+        } catch {
+          /* ignore storage / cookie errors */
+        }
+      }
       const res = await fetch(endpoint, { cache: 'no-store' });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;

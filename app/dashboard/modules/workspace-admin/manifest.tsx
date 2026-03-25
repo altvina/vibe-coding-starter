@@ -18,7 +18,7 @@ export const workspaceAdminModule: DashboardModuleDefinition = {
   id: 'workspaceAdmin',
   label: 'Workspace Admin',
   href: '/dashboard/workspace-admin',
-  allowedRoles: ['staff_admin', 'super_admin'],
+  allowedRoles: ['internal', 'admin'],
   navOrder: 90,
   widgets: [
     {
@@ -26,7 +26,7 @@ export const workspaceAdminModule: DashboardModuleDefinition = {
       moduleId: 'workspaceAdmin',
       title: 'Workspace Admin',
       href: '/dashboard/workspace-admin',
-      allowedRoles: ['staff_admin', 'super_admin'],
+      allowedRoles: ['internal', 'admin'],
       defaultSize: 'md',
       render: ({ data }) => <WorkspaceAdminWidget data={data} />,
     },

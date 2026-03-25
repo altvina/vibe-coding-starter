@@ -1,11 +1,5 @@
-import { genPageMetadata } from '@/app/seo';
-import { IntegrationsModulePage } from '@/app/dashboard/modules/integrations/module-page';
+import { redirect } from 'next/navigation';
 
-export const metadata = genPageMetadata({
-  title: 'Launch Hub',
-  description: 'Launch configured external collaboration tools.',
-});
-
-export default function IntegrationsPage() {
-  return <IntegrationsModulePage />;
+export default function IntegrationsPageRedirect() {
+  redirect('/dashboard/apps');
 }

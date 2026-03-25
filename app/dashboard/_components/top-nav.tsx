@@ -18,9 +18,9 @@ import {
 } from '@/components/shared/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-import { useDashboardRole } from '@/app/dashboard/dashboard-role-context';
+import { useDashboardIdentity } from '@/app/dashboard/dashboard-identity-context';
 import { useDashboardWorkspace } from '@/app/dashboard/dashboard-workspace-context';
-import { dashboardRoles, getDashboardRoleLabel } from '@/app/dashboard/dashboard-roles';
+import { dashboardIdentitySeeds } from '@/app/dashboard/dashboard-identities';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import {
   CommandDialog,
@@ -31,40 +31,52 @@ import {
   CommandList,
 } from '@/components/shared/ui/command';
 import { groupForHref, iconForHref } from '@/app/dashboard/_components/nav-rail';
+import type { WorkspaceRole } from '@/lib/auth/workspace-types';
+import { membershipRoleDisplayLabel } from '@/app/dashboard/workspace-role-labels';
+
+function getWorkspaceRoleLabel(
+  role: WorkspaceRole | undefined,
+  workspaceClientLabel?: string,
+) {
+  return membershipRoleDisplayLabel(role, { workspaceClientLabel });
+}
 
 export function TopNav({
   tabs,
   user,
+  role,
   workspaces,
   leadingMobileSlot,
   utilitySlot,
 }: {
   tabs: Array<{ id: string; label: string; href: string }>;
   user?: { name: string; email: string; initials: string };
-  workspaces?: Array<{ id: string; name: string }>;
+  role?: WorkspaceRole;
+  workspaces?: Array<{ id: string; name: string; clientLabel?: string }>;
   leadingMobileSlot?: ReactNode;
   utilitySlot?: ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { role, setRole } = useDashboardRole();
+  const { activeIdentityId, setActiveIdentityId } = useDashboardIdentity();
   const { activeWorkspaceId, setActiveWorkspaceId } = useDashboardWorkspace();
   const workspaceLabel =
     workspaces?.find((w) => w.id === activeWorkspaceId)?.name ?? 'Workspace';
+  const workspaceClientLabel = workspaces?.find((w) => w.id === activeWorkspaceId)
+    ?.clientLabel;
 
   const [appsOpen, setAppsOpen] = useState(false);
 
   const appItems = useMemo(() => {
     const preferredHrefOrder = [
       '/dashboard',
-      '/dashboard/integrations',
+      '/dashboard/apps',
       '/dashboard/projects',
-      '/dashboard/updates',
-      '/dashboard/chat',
-      '/dashboard/crm',
       '/dashboard/people',
       '/dashboard/inbox',
+      '/dashboard/chat',
       '/dashboard/analytics',
+      '/dashboard/workspaces',
       '/dashboard/workspace-admin',
       '/dashboard/super-admin',
       '/dashboard/module-access',
@@ -245,7 +257,7 @@ export function TopNav({
                     {user?.email ?? ' '}
                   </div>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                    {getDashboardRoleLabel(role)}
+                    {getWorkspaceRoleLabel(role, workspaceClientLabel)}
                   </span>
                 </div>
               </span>
@@ -261,19 +273,19 @@ export function TopNav({
               Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Role</DropdownMenuLabel>
+            <DropdownMenuLabel>Identity</DropdownMenuLabel>
             <DropdownMenuRadioGroup
-              value={role}
+              value={activeIdentityId}
               onValueChange={(value) => {
-                const found = dashboardRoles.find((r) => r.id === value);
+                const found = dashboardIdentitySeeds.find((identity) => identity.id === value);
                 if (found) {
-                  setRole(found.id);
+                  setActiveIdentityId(found.id);
                 }
               }}
             >
-              {dashboardRoles.map((r) => (
-                <DropdownMenuRadioItem key={r.id} value={r.id}>
-                  {r.label}
+              {dashboardIdentitySeeds.map((identity) => (
+                <DropdownMenuRadioItem key={identity.id} value={identity.id}>
+                  {identity.name}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>

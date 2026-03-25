@@ -2,11 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { useDashboardRole } from '@/app/dashboard/dashboard-role-context';
-import type { DashboardRole } from '@/app/dashboard/dashboard-roles';
+import { useDashboardIdentity } from '@/app/dashboard/dashboard-identity-context';
 
-function storageKeyForRole(role: DashboardRole) {
-  return `altvina.dashboard.activeWorkspace.${role}` as const;
+function storageKeyForIdentity(identityId: string) {
+  return `altvina.dashboard.activeWorkspace.${identityId}` as const;
 }
 
 type WorkspaceState = {
@@ -21,33 +20,33 @@ export function DashboardWorkspaceProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { role } = useDashboardRole();
+  const { activeIdentityId } = useDashboardIdentity();
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState('ws-acme');
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(storageKeyForRole(role));
+      const saved = window.localStorage.getItem(storageKeyForIdentity(activeIdentityId));
       if (saved) {
         setActiveWorkspaceIdState(saved);
       } else {
-        setActiveWorkspaceIdState(role === 'super_admin' ? 'ws-superadmin' : 'ws-acme');
+        setActiveWorkspaceIdState('ws-acme');
       }
     } catch (e) {
       void e;
-      setActiveWorkspaceIdState(role === 'super_admin' ? 'ws-superadmin' : 'ws-acme');
+      setActiveWorkspaceIdState('ws-acme');
     }
-  }, [role]);
+  }, [activeIdentityId]);
 
   const setActiveWorkspaceId = useCallback(
     (id: string) => {
       setActiveWorkspaceIdState(id);
       try {
-        window.localStorage.setItem(storageKeyForRole(role), id);
+        window.localStorage.setItem(storageKeyForIdentity(activeIdentityId), id);
       } catch (e) {
         void e;
       }
     },
-    [role],
+    [activeIdentityId],
   );
 
   const value = useMemo(

@@ -4,7 +4,7 @@ export const moduleAccessModule: DashboardModuleDefinition = {
   id: 'moduleAccess',
   label: 'Access',
   href: '/dashboard/module-access',
-  allowedRoles: ['super_admin'],
+  allowedRoles: ['admin'],
   navOrder: 90,
   widgets: [],
 };

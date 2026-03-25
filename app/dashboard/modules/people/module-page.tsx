@@ -28,7 +28,11 @@ import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
 import { useDashboardData } from '@/app/dashboard/dashboard-context';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import { useDashboardWorkspace } from '@/app/dashboard/dashboard-workspace-context';
-import type { WorkspaceMember } from '@/app/dashboard/dashboard-context';
+import type { DashboardApiResponse, WorkspaceMember } from '@/app/dashboard/dashboard-context';
+import {
+  directoryMemberRoleSingularLabel,
+  engagementRoleDisplayLabel,
+} from '@/app/dashboard/workspace-role-labels';
 import {
   createMemberId,
   defaultPeopleStore,
@@ -108,7 +112,7 @@ type EditableFields = {
 
 function editableFieldsFor(args: { viewerRole: string; isSelf: boolean }): EditableFields {
   const isStaff =
-    args.viewerRole === 'staff_admin' || args.viewerRole === 'super_admin';
+    args.viewerRole === 'internal' || args.viewerRole === 'admin';
 
   if (isStaff) {
     return {
@@ -163,35 +167,67 @@ function editableFieldsFor(args: { viewerRole: string; isSelf: boolean }): Edita
   };
 }
 
-function labelForMemberRole(role: MemberRole) {
-  if (role === 'client') return 'Client';
-  if (role === 'expert') return 'Expert';
-  return 'Staff';
+export function PeopleModulePage() {
+  const { activeWorkspaceId } = useDashboardWorkspace();
+  const { data, isLoading, error } = useDashboardData();
+  const dataMatchesWorkspace = data?.activeWorkspaceId === activeWorkspaceId;
+
+  if (error) {
+    return (
+      <DashboardCard title="People">
+        <p className={cn('text-sm', dashboardTokens.textMuted)}>{error}</p>
+      </DashboardCard>
+    );
+  }
+
+  if (!data || isLoading || !dataMatchesWorkspace) {
+    return (
+      <DashboardCard title="People">
+        <p className={cn('text-sm', dashboardTokens.textMuted)}>Loading directory…</p>
+      </DashboardCard>
+    );
+  }
+
+  return (
+    <PeopleModulePageInner
+      key={activeWorkspaceId}
+      workspaceId={activeWorkspaceId}
+      data={data}
+    />
+  );
 }
 
-export function PeopleModulePage() {
-  const { data } = useDashboardData();
-  const { activeWorkspaceId } = useDashboardWorkspace();
+function PeopleModulePageInner({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: DashboardApiResponse;
+}) {
+  const [directoryView, setDirectoryView] = useState<'grid' | 'table'>('grid');
   const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | MemberRole>('all');
+  const [projectFilter, setProjectFilter] = useState<'all' | string>('all');
+  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'active' | 'masked' | 'hidden'>(
+    'all',
+  );
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const baseMembers = data?.workspace.members ?? EMPTY_MEMBERS;
-  const projects = data?.workspace.projects ?? EMPTY_PROJECTS;
-  const tasks = data?.workspace.tasks ?? EMPTY_TASKS;
-  const projectMemberships = data?.workspace.projectMemberships ?? EMPTY_PROJECT_MEMBERSHIPS;
-  const [store, setStore] = useState(() => defaultPeopleStore());
+  const baseMembers = data.workspace.members ?? EMPTY_MEMBERS;
+  const projects = data.workspace.projects ?? EMPTY_PROJECTS;
+  const tasks = data.workspace.tasks ?? EMPTY_TASKS;
+  const projectMemberships = data.workspace.projectMemberships ?? EMPTY_PROJECT_MEMBERSHIPS;
+  const [store, setStore] = useState(() => loadPeopleStore(workspaceId));
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('view');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const viewerRole = data?.role ?? 'client';
-  const isStaff = viewerRole === 'staff_admin' || viewerRole === 'super_admin';
-
-  useEffect(() => {
-    setStore(loadPeopleStore(activeWorkspaceId));
-  }, [activeWorkspaceId]);
+  const viewerRole = data.role;
+  const isStaff = viewerRole === 'internal' || viewerRole === 'admin';
+  const workspaceClientLabel =
+    data.workspaces.find((w) => w.id === workspaceId)?.clientLabel?.trim() ?? 'Client';
 
   function persist(next: ReturnType<typeof defaultPeopleStore>) {
     setStore(next);
-    savePeopleStore(activeWorkspaceId, next);
+    savePeopleStore(workspaceId, next);
   }
 
   const members = useMemo(
@@ -236,31 +272,43 @@ export function PeopleModulePage() {
   }, [projectMemberships]);
 
   const q = query.trim().toLowerCase();
+  function visibilityStatus(member: WorkspaceMember): 'active' | 'masked' | 'hidden' {
+    if (member.fieldMask?.name) return 'hidden';
+    if (member.fieldMask?.title || member.fieldMask?.bio) return 'masked';
+    return 'active';
+  }
+
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
+      if (roleFilter !== 'all' && m.role !== roleFilter) return false;
+      if (projectFilter !== 'all') {
+        const projectIds = projectIdsByMemberId.get(m.id) ?? [];
+        if (!projectIds.includes(projectFilter)) return false;
+      }
+      if (visibilityFilter !== 'all' && visibilityStatus(m) !== visibilityFilter) return false;
       if (!q) return true;
       return (
         m.displayName.toLowerCase().includes(q) ||
         (m.username ?? '').toLowerCase().includes(q) ||
-        (m.title ?? '').toLowerCase().includes(q)
+        (m.title ?? '').toLowerCase().includes(q) ||
+        (m.bio ?? '').toLowerCase().includes(q)
       );
     });
-  }, [members, q]);
+  }, [members, projectFilter, projectIdsByMemberId, q, roleFilter, visibilityFilter]);
 
   const selected = members.find((m) => m.id === selectedMemberId) ?? null;
   const selectedProjectIds = selected ? projectIdsByMemberId.get(selected.id) ?? [] : [];
 
   const currentMemberId = useMemo(() => {
-    if (!data) return null;
     const role = data.role;
     const memberRole: MemberRole =
-      role === 'staff_admin' || role === 'super_admin'
+      role === 'internal' || role === 'admin'
         ? 'staff'
-        : role === 'expert'
+        : role === 'contractor'
           ? 'expert'
           : 'client';
     return members.find((m) => m.role === memberRole)?.id ?? null;
-  }, [data, members]);
+  }, [data.role, members]);
 
   const currentMember = currentMemberId
     ? members.find((m) => m.id === currentMemberId) ?? null
@@ -310,10 +358,6 @@ export function PeopleModulePage() {
     });
   }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!data) {
-    return null;
-  }
-
   if (!data.capabilities.canViewMemberDirectory) {
     return (
       <DashboardCard title="People">
@@ -331,7 +375,7 @@ export function PeopleModulePage() {
           <DashboardCard title="People">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className={cn('text-sm', dashboardTokens.textMuted)}>
-                Workspace members curated by Altvina.
+                Directory for people, roles, and visibility.
               </div>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
                 <div className="relative w-full sm:max-w-sm">
@@ -347,6 +391,27 @@ export function PeopleModulePage() {
                       dashboardTokens.focusRing,
                     )}
                   />
+                </div>
+
+                <div className="inline-flex rounded-full border p-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={directoryView === 'grid' ? 'default' : 'ghost'}
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => setDirectoryView('grid')}
+                  >
+                    Grid
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={directoryView === 'table' ? 'default' : 'ghost'}
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => setDirectoryView('table')}
+                  >
+                    Table
+                  </Button>
                 </div>
 
                 {currentMember ? (
@@ -389,16 +454,66 @@ export function PeopleModulePage() {
 
         <div className="lg:col-span-12">
           <DashboardCard title="Directory">
-            <div className="space-y-2">
+            <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-4">
+              <Select value={roleFilter} onValueChange={(value) => setRoleFilter(value as typeof roleFilter)}>
+                <SelectTrigger className={cn('h-9 rounded-lg text-xs', dashboardTokens.focusRing)}>
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All roles</SelectItem>
+                  <SelectItem value="client">
+                    {directoryMemberRoleSingularLabel('client', { workspaceClientLabel })}
+                  </SelectItem>
+                  <SelectItem value="expert">
+                    {directoryMemberRoleSingularLabel('expert', { workspaceClientLabel })}
+                  </SelectItem>
+                  <SelectItem value="staff">
+                    {directoryMemberRoleSingularLabel('staff', { workspaceClientLabel })}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger className={cn('h-9 rounded-lg text-xs', dashboardTokens.focusRing)}>
+                  <SelectValue placeholder="Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All projects</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={visibilityFilter} onValueChange={(value) => setVisibilityFilter(value as typeof visibilityFilter)}>
+                <SelectTrigger className={cn('h-9 rounded-lg text-xs', dashboardTokens.focusRing)}>
+                  <SelectValue placeholder="Visibility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All visibility</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="masked">Masked</SelectItem>
+                  <SelectItem value="hidden">Hidden</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value="workspace">
+                <SelectTrigger className={cn('h-9 rounded-lg text-xs', dashboardTokens.focusRing)}>
+                  <SelectValue placeholder="Organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="workspace">Current workspace</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className={cn(directoryView === 'grid' ? 'grid grid-cols-1 gap-2 lg:grid-cols-2' : 'space-y-2')}>
               {filteredMembers.map((m) => (
-                <button
+                <div
                   key={m.id}
-                  type="button"
-                  onClick={() => setSelectedMemberId(m.id)}
                   className={cn(
-                    'flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40',
+                    'rounded-2xl border p-4',
                     dashboardTokens.border,
-                    dashboardTokens.focusRing,
+                    directoryView === 'table' ? 'flex items-center justify-between gap-4' : '',
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -410,60 +525,46 @@ export function PeopleModulePage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="truncate text-sm font-semibold">{m.displayName}</span>
-                        {m.username ? (
-                          <span className={cn('text-xs font-medium', dashboardTokens.textSubtle)}>
-                            @{m.username}
-                          </span>
-                        ) : null}
+                        <Badge variant="secondary" className="text-[10px] font-semibold">
+                          {directoryMemberRoleSingularLabel(m.role, { workspaceClientLabel })}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {visibilityStatus(m).toUpperCase()}
+                        </Badge>
                       </div>
                       <div className={cn('truncate text-xs', dashboardTokens.textSubtle)}>
-                        {m.title ?? '—'} • {m.role.toUpperCase()}
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {(projectIdsByMemberId.get(m.id) ?? []).slice(0, 2).map((projectId) => {
-                          const p = projectById.get(projectId);
-                          if (!p) return null;
-                          const engagementRole =
-                            engagementRoleByMemberProject.get(`${m.id}:${projectId}`) ?? '';
-                          return (
-                            <span
-                              key={projectId}
-                              className={cn(
-                                'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold',
-                                projectPillClasses(p.idx),
-                              )}
-                            >
-                              {p.name}
-                              {engagementRole ? (
-                                <span className="ml-2 rounded-full bg-black/5 px-2 py-0.5 text-xs font-semibold leading-none dark:bg-white/10">
-                                  {engagementRole}
-                                </span>
-                              ) : null}
-                            </span>
-                          );
-                        })}
-                        {(projectIdsByMemberId.get(m.id) ?? []).length > 2 ? (
-                          <span
-                            className={cn(
-                              'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold',
-                              'bg-slate-50 text-slate-700 dark:bg-slate-900 dark:text-slate-200',
-                            )}
-                          >
-                            +{(projectIdsByMemberId.get(m.id) ?? []).length - 2}
-                          </span>
-                        ) : null}
-                        {(projectIdsByMemberId.get(m.id) ?? []).length === 0 ? (
-                          <span className={cn('text-xs', dashboardTokens.textSubtle)}>
-                            No active projects
-                          </span>
-                        ) : null}
+                        {m.title ?? 'No title'} {m.headline ? `· ${m.headline}` : ''}
                       </div>
                     </div>
                   </div>
-                  <span className={cn('text-xs', dashboardTokens.textSubtle)}>
-                    View
-                  </span>
-                </button>
+                  <div className="mt-3 flex gap-2 md:mt-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn('rounded-full text-xs', dashboardTokens.focusRing)}
+                      onClick={() => {
+                        setSelectedMemberId(m.id);
+                        setDialogMode('view');
+                      }}
+                    >
+                      View profile
+                    </Button>
+                    {isStaff ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className={cn('rounded-full text-xs', dashboardTokens.focusRing)}
+                        onClick={() => {
+                          setSelectedMemberId(m.id);
+                          setDialogMode('edit');
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
               ))}
               {!filteredMembers.length ? (
                 <div className={cn('text-sm', dashboardTokens.textMuted)}>
@@ -473,6 +574,36 @@ export function PeopleModulePage() {
             </div>
           </DashboardCard>
         </div>
+
+        {isStaff ? (
+          <div className="lg:col-span-12">
+            <DashboardCard title="Admin Management">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className={cn('rounded-xl border p-3', dashboardTokens.border, dashboardTokens.surfaceMuted)}>
+                  <div className="text-sm font-semibold">Person management</div>
+                  <div className={cn('mt-1 text-xs', dashboardTokens.textMuted)}>
+                    Create, edit, and archive people from the directory.
+                  </div>
+                  <Button
+                    type="button"
+                    className={cn('mt-3 rounded-full text-xs', dashboardTokens.focusRing)}
+                    onClick={() => setCreateOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create person
+                  </Button>
+                </div>
+                <div className={cn('rounded-xl border p-3', dashboardTokens.border, dashboardTokens.surfaceMuted)}>
+                  <div className="text-sm font-semibold">Assignments</div>
+                  <div className={cn('mt-1 text-xs', dashboardTokens.textMuted)}>
+                    Project-level and workspace role assignments are editable in each person profile
+                    and workspace controls.
+                  </div>
+                </div>
+              </div>
+            </DashboardCard>
+          </div>
+        ) : null}
       </div>
 
       <Dialog open={Boolean(selected)} onOpenChange={() => setSelectedMemberId(null)}>
@@ -490,6 +621,7 @@ export function PeopleModulePage() {
               store={store}
               persist={persist}
               data={data}
+              workspaceClientLabel={workspaceClientLabel}
               projectById={projectById}
               selectedProjectIds={selectedProjectIds}
               engagementRoleByMemberProject={engagementRoleByMemberProject}
@@ -511,6 +643,7 @@ export function PeopleModulePage() {
           </DialogHeader>
 
           <CreateMemberForm
+            workspaceClientLabel={workspaceClientLabel}
             onCancel={() => setCreateOpen(false)}
             onCreate={(member) => {
               const next = {
@@ -560,6 +693,7 @@ type ProfileScreenProps = {
   projectPillClasses: (idx: number) => string;
   setSelectedMemberId: (id: string | null) => void;
   buildDisplayName: (args: { firstName: string; lastName: string; fallback: string }) => string;
+  workspaceClientLabel: string;
 };
 
 function VisibilityChip({ state }: { state: 'public' | 'private' | 'unset' }) {
@@ -604,6 +738,7 @@ function ProfileScreen({
   projectPillClasses,
   setSelectedMemberId,
   buildDisplayName,
+  workspaceClientLabel,
 }: ProfileScreenProps) {
   const isSelf = selected.id === currentMemberId;
   const fields = editableFieldsFor({ viewerRole, isSelf });
@@ -634,7 +769,7 @@ function ProfileScreen({
                 <span className={cn('text-sm', dashboardTokens.textSubtle)}>@{selected.username}</span>
               ) : null}
               <Badge variant="secondary" className="text-xs">
-                {labelForMemberRole(selected.role)}
+                {directoryMemberRoleSingularLabel(selected.role, { workspaceClientLabel })}
               </Badge>
             </div>
           </div>
@@ -691,11 +826,13 @@ function ProfileScreen({
             store={store}
             setDialogMode={setDialogMode}
             buildDisplayName={buildDisplayName}
+            workspaceClientLabel={workspaceClientLabel}
           />
         ) : (
           <ProfileViewSections
             selected={selected}
             data={data}
+            workspaceClientLabel={workspaceClientLabel}
             projectById={projectById}
             selectedProjectIds={selectedProjectIds}
             engagementRoleByMemberProject={engagementRoleByMemberProject}
@@ -710,6 +847,7 @@ function ProfileScreen({
 function ProfileViewSections({
   selected,
   data,
+  workspaceClientLabel,
   projectById,
   selectedProjectIds,
   engagementRoleByMemberProject,
@@ -717,6 +855,7 @@ function ProfileViewSections({
 }: {
   selected: WorkspaceMember;
   data: NonNullable<ReturnType<typeof useDashboardData>['data']>;
+  workspaceClientLabel: string;
   projectById: Map<string, { id: string; name: string; idx: number }>;
   selectedProjectIds: string[];
   engagementRoleByMemberProject: Map<string, string>;
@@ -853,7 +992,7 @@ function ProfileViewSections({
                   {p.name}
                   {engagementRole ? (
                     <span className="ml-2 rounded-full bg-black/5 px-2 py-0.5 text-xs leading-none dark:bg-white/10">
-                      {engagementRole}
+                      {engagementRoleDisplayLabel(engagementRole, { workspaceClientLabel })}
                     </span>
                   ) : null}
                 </span>
@@ -903,6 +1042,7 @@ function ProfileEditForm({
   store,
   setDialogMode,
   buildDisplayName,
+  workspaceClientLabel,
 }: {
   editDraft: ProfileScreenProps['editDraft'];
   setEditDraft: ProfileScreenProps['setEditDraft'];
@@ -912,6 +1052,7 @@ function ProfileEditForm({
   store: ReturnType<typeof defaultPeopleStore>;
   setDialogMode: (m: 'view' | 'edit') => void;
   buildDisplayName: (args: { firstName: string; lastName: string; fallback: string }) => string;
+  workspaceClientLabel: string;
 }) {
   return (
     <div className="space-y-4">
@@ -986,7 +1127,7 @@ function ProfileEditForm({
               <SelectContent>
                 {(['client', 'expert', 'staff'] as const).map((r) => (
                   <SelectItem key={r} value={r}>
-                    {labelForMemberRole(r)}
+                    {directoryMemberRoleSingularLabel(r, { workspaceClientLabel })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1128,9 +1269,11 @@ function slugUsername(name: string): string {
 }
 
 function CreateMemberForm({
+  workspaceClientLabel,
   onCancel,
   onCreate,
 }: {
+  workspaceClientLabel: string;
   onCancel: () => void;
   onCreate: (member: WorkspaceMember) => void;
 }) {
@@ -1210,7 +1353,7 @@ function CreateMemberForm({
             <SelectContent>
               {(['client', 'expert', 'staff'] as const).map((r) => (
                 <SelectItem key={r} value={r}>
-                  {labelForMemberRole(r)}
+                  {directoryMemberRoleSingularLabel(r, { workspaceClientLabel })}
                 </SelectItem>
               ))}
             </SelectContent>

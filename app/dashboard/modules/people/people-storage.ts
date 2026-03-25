@@ -45,6 +45,8 @@ export function mergeMembers(args: {
   store: PeopleStoreV1;
 }): WorkspaceMember[] {
   const deleted = new Set(args.store.deleted);
+  const baseIds = new Set(args.base.map((m) => m.id));
+  const createdIds = new Set(args.store.created.map((m) => m.id));
   const byId = new Map<string, WorkspaceMember>();
 
   function splitDisplayName(displayName: string) {
@@ -104,7 +106,10 @@ export function mergeMembers(args: {
     byId.set(id, normalizeMember({ ...current, ...patch }));
   });
 
-  return Array.from(byId.values());
+  /** Only workspace roster (API) plus people explicitly added in this workspace's local store */
+  return Array.from(byId.values()).filter(
+    (m) => baseIds.has(m.id) || createdIds.has(m.id),
+  );
 }
 
 export function createMemberId(nowIso: string) {

@@ -8,6 +8,7 @@ import { Switch } from '@/components/shared/ui/switch';
 import { Button } from '@/components/shared/ui/button';
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import { cn } from '@/lib/utils';
+import { membershipRoleDisplayLabel } from '@/app/dashboard/workspace-role-labels';
 
 export function ModuleAccessClient() {
   const { data } = useDashboardData();
@@ -17,11 +18,11 @@ export function ModuleAccessClient() {
     return null;
   }
 
-  if (data.role !== 'super_admin') {
+  if (data.role !== 'admin') {
     return (
       <DashboardCard title="Module Access">
         <p className={cn('text-sm', dashboardTokens.textMuted)}>
-          This module is only available to Super Admin users in the simulation.
+          This module is only available to workspace admins in the simulation.
         </p>
       </DashboardCard>
     );
@@ -38,9 +39,10 @@ export function ModuleAccessClient() {
   }
 
   const targetRoles = [
-    { id: 'client' as const, label: 'Client' },
-    { id: 'expert' as const, label: 'Expert' },
-    { id: 'staff_admin' as const, label: 'Staff/Admin' },
+    { id: 'client' as const, label: membershipRoleDisplayLabel('client') },
+    { id: 'viewer' as const, label: membershipRoleDisplayLabel('viewer') },
+    { id: 'contractor' as const, label: membershipRoleDisplayLabel('contractor') },
+    { id: 'internal' as const, label: membershipRoleDisplayLabel('internal') },
   ];
 
   return (

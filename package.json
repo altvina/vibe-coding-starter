@@ -10,9 +10,10 @@
     "serve": "next start",
     "analyze": "cross-env ANALYZE=true next build",
     "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
+    "test": "vitest run",
     "pretty": "prettier --write .",
     "appinfo": "node ./scripts/generateAppInfo.mjs",
-    "crm:migrate": "node ./scripts/runCrmMigrations.mjs"
+    "migrate:action-requests": "node ./scripts/runActionRequestsMigration.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -123,7 +124,8 @@
     "sharp": "^0.33.5",
     "to-ico": "^1.1.5",
     "typescript": "^5.9.2",
-    "vfile": "^6.0.3"
+    "vfile": "^6.0.3",
+    "vitest": "^3.2.4"
   },
   "overrides": {
     "react": "^19.2.1",

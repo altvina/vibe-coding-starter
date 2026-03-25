@@ -43,6 +43,13 @@ export const integrationToolConfigs: Record<IntegrationToolId, IntegrationToolCo
   },
 };
 
+export function permissionKeyForTool(toolId: IntegrationToolId) {
+  if (toolId === 'chat') {
+    return 'canAccessMattermost' as const;
+  }
+  return 'canAccessPlane' as const;
+}
+
 function defaultLaunchConfig(): IntegrationLaunchConfig {
   return {
     version: CONFIG_VERSION,

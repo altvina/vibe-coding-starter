@@ -4,53 +4,56 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { dashboardModules } from '@/app/dashboard/modules/registry';
 import type { DashboardModuleId } from '@/app/dashboard/modules/types';
-import type { DashboardRole } from '@/app/dashboard/dashboard-roles';
+import type { WorkspaceRole } from '@/lib/auth/workspace-types';
 
 const moduleAccessStorageKey = 'altvina.dashboard.moduleAccess' as const;
 
 type ModuleAccessConfig = {
-  enabledByRole: Record<DashboardRole, DashboardModuleId[]>;
+  enabledByRole: Record<WorkspaceRole, DashboardModuleId[]>;
 };
 
 type ModuleAccessState = {
   config: ModuleAccessConfig;
   setModuleEnabled: (args: {
-    role: DashboardRole;
+    role: WorkspaceRole;
     moduleId: DashboardModuleId;
     enabled: boolean;
   }) => void;
-  isModuleEnabled: (args: { role: DashboardRole; moduleId: DashboardModuleId }) => boolean;
+  isModuleEnabled: (args: { role: WorkspaceRole; moduleId: DashboardModuleId }) => boolean;
   reset: () => void;
 };
 
 const ModuleAccessContext = createContext<ModuleAccessState | null>(null);
 
 function getDefaultConfig(): ModuleAccessConfig {
-  const roles: DashboardRole[] = ['client', 'expert', 'staff_admin', 'super_admin'];
+  const roles: WorkspaceRole[] = ['client', 'contractor', 'internal', 'admin', 'viewer'];
 
-  const enabledByRole = roles.reduce<Record<DashboardRole, DashboardModuleId[]>>(
+  const enabledByRole = roles.reduce<Record<WorkspaceRole, DashboardModuleId[]>>(
     (acc, role) => {
       acc[role] = dashboardModules
         .filter((m) => m.allowedRoles.includes(role))
         .map((m) => m.id);
       return acc;
     },
-    { client: [], expert: [], staff_admin: [], super_admin: [] },
+    { admin: [], internal: [], contractor: [], client: [], viewer: [] },
   );
 
-  // Super admin always keeps access controls enabled.
-  if (!enabledByRole.super_admin.includes('moduleAccess')) {
-    enabledByRole.super_admin = [...enabledByRole.super_admin, 'moduleAccess'];
+  // Admin always keeps access controls enabled.
+  if (!enabledByRole.admin.includes('moduleAccess')) {
+    enabledByRole.admin = [...enabledByRole.admin, 'moduleAccess'];
   }
 
   // Hide staff-only modules from other roles by default.
   enabledByRole.client = enabledByRole.client.filter(
     (id) => id !== 'clients' && id !== 'moduleAccess' && id !== 'superAdmin',
   );
-  enabledByRole.expert = enabledByRole.expert.filter(
+  enabledByRole.contractor = enabledByRole.contractor.filter(
     (id) => id !== 'clients' && id !== 'moduleAccess' && id !== 'superAdmin',
   );
-  enabledByRole.staff_admin = enabledByRole.staff_admin.filter(
+  enabledByRole.viewer = enabledByRole.viewer.filter(
+    (id) => id !== 'clients' && id !== 'moduleAccess' && id !== 'superAdmin',
+  );
+  enabledByRole.internal = enabledByRole.internal.filter(
     (id) => id !== 'moduleAccess' && id !== 'superAdmin',
   );
 
@@ -65,7 +68,7 @@ function coerceConfig(raw: unknown): ModuleAccessConfig {
   if (!obj.enabledByRole || typeof obj.enabledByRole !== 'object') return fallback;
 
   const enabledByRole = fallback.enabledByRole;
-  (['client', 'expert', 'staff_admin', 'super_admin'] as const).forEach((role) => {
+  (['client', 'contractor', 'internal', 'admin', 'viewer'] as const).forEach((role) => {
     const value = (obj.enabledByRole as Record<string, unknown>)[role];
     if (!Array.isArray(value)) return;
     const ids = value.filter((v): v is DashboardModuleId => typeof v === 'string') as DashboardModuleId[];
@@ -73,9 +76,17 @@ function coerceConfig(raw: unknown): ModuleAccessConfig {
   });
 
   // Enforce invariants.
-  if (!enabledByRole.super_admin.includes('moduleAccess')) {
-    enabledByRole.super_admin = [...enabledByRole.super_admin, 'moduleAccess'];
+  if (!enabledByRole.admin.includes('moduleAccess')) {
+    enabledByRole.admin = [...enabledByRole.admin, 'moduleAccess'];
   }
+
+  // New nav modules: if workspace admin is on, enable the workspace directory too.
+  (['internal', 'admin'] as const).forEach((role) => {
+    const cur = enabledByRole[role];
+    if (cur.includes('workspaceAdmin') && !cur.includes('allWorkspaces')) {
+      enabledByRole[role] = [...cur, 'allWorkspaces'];
+    }
+  });
 
   return { enabledByRole };
 }
@@ -108,7 +119,7 @@ export function ModuleAccessProvider({ children }: { children: React.ReactNode }
       moduleId,
       enabled,
     }: {
-      role: DashboardRole;
+      role: WorkspaceRole;
       moduleId: DashboardModuleId;
       enabled: boolean;
     }) => {
@@ -125,8 +136,8 @@ export function ModuleAccessProvider({ children }: { children: React.ReactNode }
       };
 
       // Invariants
-      if (!next.enabledByRole.super_admin.includes('moduleAccess')) {
-        next.enabledByRole.super_admin = [...next.enabledByRole.super_admin, 'moduleAccess'];
+      if (!next.enabledByRole.admin.includes('moduleAccess')) {
+        next.enabledByRole.admin = [...next.enabledByRole.admin, 'moduleAccess'];
       }
 
       persist(next);
@@ -135,7 +146,7 @@ export function ModuleAccessProvider({ children }: { children: React.ReactNode }
   );
 
   const isModuleEnabled = useCallback(
-    ({ role, moduleId }: { role: DashboardRole; moduleId: DashboardModuleId }) =>
+    ({ role, moduleId }: { role: WorkspaceRole; moduleId: DashboardModuleId }) =>
       (config.enabledByRole[role] ?? []).includes(moduleId),
     [config.enabledByRole],
   );

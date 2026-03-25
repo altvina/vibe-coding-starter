@@ -45,7 +45,7 @@ export const projectsModule: DashboardModuleDefinition = {
   id: 'projects',
   label: 'Projects',
   href: '/dashboard/projects',
-  allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+  allowedRoles: ['client', 'contractor', 'internal', 'admin'],
   navOrder: 30,
   widgets: [
     {
@@ -53,7 +53,7 @@ export const projectsModule: DashboardModuleDefinition = {
       moduleId: 'projects',
       title: 'Projects',
       href: '/dashboard/projects',
-      allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+      allowedRoles: ['client', 'contractor', 'internal', 'admin'],
       defaultSize: 'lg',
       render: ({ data }) => <ProjectsWidget data={data} />,
     },

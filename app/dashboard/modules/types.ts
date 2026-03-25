@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type {
   DashboardApiResponse,
 } from '@/app/dashboard/dashboard-context';
-import type { DashboardRole } from '@/app/dashboard/dashboard-roles';
+import type { WorkspaceRole } from '@/lib/auth/workspace-types';
 
 export type DashboardModuleId =
   | 'analytics'
@@ -13,9 +13,9 @@ export type DashboardModuleId =
   | 'updates'
   | 'chat'
   | 'integrations'
-  | 'crm'
   | 'clients'
   | 'workspaceAdmin'
+  | 'allWorkspaces'
   | 'superAdmin'
   | 'moduleAccess';
 
@@ -27,7 +27,7 @@ export type DashboardWidgetDefinition = {
   title: string;
   description?: string;
   href: string;
-  allowedRoles: DashboardRole[];
+  allowedRoles: WorkspaceRole[];
   defaultSize: DashboardWidgetSize;
   render: (args: { data: DashboardApiResponse }) => ReactNode;
 };
@@ -36,7 +36,7 @@ export type DashboardModuleDefinition = {
   id: DashboardModuleId;
   label: string;
   href: string;
-  allowedRoles: DashboardRole[];
+  allowedRoles: WorkspaceRole[];
   navOrder: number;
   widgets: DashboardWidgetDefinition[];
 };

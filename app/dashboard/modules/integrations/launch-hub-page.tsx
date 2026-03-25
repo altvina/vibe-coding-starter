@@ -7,6 +7,7 @@ import { useDashboardData } from '@/app/dashboard/dashboard-context';
 import { useDashboardWorkspace } from '@/app/dashboard/dashboard-workspace-context';
 import {
   integrationToolConfigs,
+  permissionKeyForTool,
   resolveWorkspaceLaunch,
   type IntegrationToolId,
 } from '@/app/dashboard/modules/integrations/integrations-stub';
@@ -23,17 +24,124 @@ export function LaunchHubPage() {
   const workspaceName =
     data?.workspaces.find((workspace) => workspace.id === activeWorkspaceId)?.name ??
     'active workspace';
+  const visibleToolIds = launchOrder.filter(
+    (toolId) => data?.permissions[permissionKeyForTool(toolId)] ?? false,
+  );
 
   return (
     <div className="space-y-4">
-      <DashboardCard title="Launch Hub">
+      <DashboardCard title="Apps">
         <p className={cn('text-sm', dashboardTokens.textMuted)}>
-          Open external collaboration tools for <span className="font-semibold">{workspaceName}</span>.
+          Manage connected apps, available apps, automations, and data sources for{' '}
+          <span className="font-semibold">{workspaceName}</span>.
         </p>
       </DashboardCard>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {launchOrder.map((toolId) => {
+        <DashboardCard title="Connected Apps">
+          <div className="space-y-2">
+            {visibleToolIds.length ? (
+              visibleToolIds.map((toolId) => {
+                const tool = integrationToolConfigs[toolId];
+                const launch = resolveWorkspaceLaunch(toolId, activeWorkspaceId);
+                return (
+                  <div
+                    key={toolId}
+                    className={cn(
+                      'flex items-center justify-between rounded-xl border px-3 py-2',
+                      dashboardTokens.border,
+                      dashboardTokens.surfaceMuted,
+                    )}
+                  >
+                    <div>
+                      <div className="text-sm font-semibold">{tool.label}</div>
+                      <div className={cn('text-xs', dashboardTokens.textSubtle)}>
+                        {launch ? 'Connected' : 'Not configured'}
+                      </div>
+                    </div>
+                    {launch ? (
+                      <Button asChild size="sm" className="rounded-full">
+                        <a href={launch.url} target="_blank" rel="noopener noreferrer">
+                          Launch
+                        </a>
+                      </Button>
+                    ) : null}
+                  </div>
+                );
+              })
+            ) : (
+              <p className={cn('text-sm', dashboardTokens.textMuted)}>
+                No connected apps are enabled for your role.
+              </p>
+            )}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Available Apps">
+          <div className="space-y-2">
+            {['CRM Connector', 'Calendar Sync', 'File Storage Bridge'].map((app) => (
+              <div
+                key={app}
+                className={cn(
+                  'flex items-center justify-between rounded-xl border px-3 py-2',
+                  dashboardTokens.border,
+                  dashboardTokens.surfaceMuted,
+                )}
+              >
+                <span className="text-sm font-medium">{app}</span>
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
+                  Request access
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <DashboardCard title="Automations">
+          <p className={cn('mb-3 text-sm', dashboardTokens.textMuted)}>
+            Trigger workspace workflows from app events.
+          </p>
+          <div className="space-y-2">
+            {['Inbox triage to project task', 'Client intake to workspace update'].map((item) => (
+              <div
+                key={item}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-sm',
+                  dashboardTokens.border,
+                  dashboardTokens.surfaceMuted,
+                )}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard title="Data Sources">
+          <p className={cn('mb-3 text-sm', dashboardTokens.textMuted)}>
+            Keep reports and workflows in sync with source systems.
+          </p>
+          <div className="space-y-2">
+            {['Project data', 'People directory', 'Inbox activity'].map((source) => (
+              <div
+                key={source}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-sm',
+                  dashboardTokens.border,
+                  dashboardTokens.surfaceMuted,
+                )}
+              >
+                {source}
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {visibleToolIds.map((toolId) => {
           const tool = integrationToolConfigs[toolId];
           const launch = resolveWorkspaceLaunch(toolId, activeWorkspaceId);
           const isPlaceholderLaunchUrl = launch?.url.includes('.example.com') ?? false;

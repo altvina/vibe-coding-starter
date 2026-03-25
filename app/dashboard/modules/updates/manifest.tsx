@@ -34,7 +34,7 @@ export const updatesModule: DashboardModuleDefinition = {
   id: 'updates',
   label: 'Updates',
   href: '/dashboard/updates',
-  allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+  allowedRoles: ['client', 'contractor', 'internal', 'admin'],
   navOrder: 30,
   widgets: [
     {
@@ -42,7 +42,7 @@ export const updatesModule: DashboardModuleDefinition = {
       moduleId: 'updates',
       title: 'Updates',
       href: '/dashboard/updates',
-      allowedRoles: ['client', 'expert', 'staff_admin', 'super_admin'],
+      allowedRoles: ['client', 'contractor', 'internal', 'admin'],
       defaultSize: 'lg',
       render: ({ data }) => <UpdatesWidget data={data} />,
     },

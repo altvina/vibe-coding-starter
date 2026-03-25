@@ -101,10 +101,13 @@ export function ProjectsHierarchyPage() {
   const currentMemberId = useMemo(() => {
     const role = data?.role;
     if (!role) return members[0]?.id ?? 'unknown';
-    if (role === 'staff_admin' || role === 'super_admin') {
+    if (role === 'internal' || role === 'admin') {
       return members.find((m) => m.role === 'staff')?.id ?? members[0]?.id ?? 'unknown';
     }
-    return members.find((m) => m.role === role)?.id ?? members[0]?.id ?? 'unknown';
+    if (role === 'contractor') {
+      return members.find((m) => m.role === 'expert')?.id ?? members[0]?.id ?? 'unknown';
+    }
+    return members.find((m) => m.role === 'client')?.id ?? members[0]?.id ?? 'unknown';
   }, [data?.role, members]);
 
   const effectiveSelectedProjectId = selectedProjectId ?? projects[0]?.id ?? null;
@@ -118,7 +121,7 @@ export function ProjectsHierarchyPage() {
       : tasks;
 
     const byRole =
-      data?.role === 'expert'
+      data?.role === 'contractor'
         ? forProject.filter((t) => t.assigneeIds.includes(currentMemberId))
         : forProject;
 

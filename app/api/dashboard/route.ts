@@ -5,13 +5,33 @@ import {
   sidebarAssistant,
   promoLearning,
 } from '@/app/dashboard/dashboard-data';
-import { capabilitiesForRole } from '@/app/dashboard/dashboard-permissions';
 import {
-  defaultDashboardRole,
-  isDashboardRole,
-  type DashboardRole,
-} from '@/app/dashboard/dashboard-roles';
+  capabilitiesForMembership,
+  type DashboardCapabilities,
+} from '@/app/dashboard/dashboard-permissions';
+import {
+  dashboardIdentitySeeds,
+  defaultDashboardIdentityId,
+  isDashboardIdentityId,
+} from '@/app/dashboard/dashboard-identities';
+import {
+  getMembershipSeedsForIdentity,
+  getMembershipsForIdentity,
+} from '@/lib/auth/mock-memberships';
 import { WORKSPACE_CONFIG_COOKIE_KEY } from '@/app/dashboard/modules/workspace-admin/workspace-config';
+import {
+  readWorkspaceDirectoryFromCookieValue,
+  WORKSPACE_DIRECTORY_COOKIE_KEY,
+  type WorkspaceDirectoryV1,
+} from '@/lib/dashboard/workspace-directory';
+import {
+  actionRequestOpenStatuses,
+  type DashboardActionRequest,
+} from '@/lib/action-requests';
+import { listWorkspaceActionRequests } from '@/lib/server/action-requests-store';
+import { permissionsForMembership } from '@/lib/auth/workspace-rbac';
+import { guardWorkspaceAccess } from '@/lib/auth/require-workspace-access';
+import type { WorkspaceMembership } from '@/lib/auth/workspace-types';
 
 const inboxPreview = {
   title: 'Inbox',
@@ -308,21 +328,129 @@ const workspaceSeeds: WorkspaceSeed[] = [
   },
 ];
 
+function mergeDirectoryCustomWorkspaceSeeds(
+  baseSeeds: WorkspaceSeed[],
+  directory: WorkspaceDirectoryV1 | null,
+): WorkspaceSeed[] {
+  if (!directory?.customWorkspaces?.length) {
+    return baseSeeds;
+  }
+  const existing = new Set(baseSeeds.map((seed) => seed.id));
+  const extras: WorkspaceSeed[] = [];
+  for (const entry of directory.customWorkspaces) {
+    if (existing.has(entry.id)) {
+      continue;
+    }
+    existing.add(entry.id);
+    const owner =
+      dashboardIdentitySeeds.find((identity) => identity.id === entry.ownerIdentityId) ??
+      dashboardIdentitySeeds[0];
+    extras.push({
+      id: entry.id,
+      name: entry.name,
+      clientLabel: entry.clientLabel,
+      members: [
+        {
+          id: `m-${entry.id}-owner`,
+          displayName: owner.name,
+          username: owner.email.split('@')[0]?.replace(/[^a-z0-9._-]/gi, '.') ?? 'owner',
+          role: 'staff',
+          title: 'Workspace owner',
+          bio: entry.description,
+          email: owner.email,
+        },
+      ],
+      updates: [],
+      projects: [],
+      tasks: [],
+      subtasks: [],
+    });
+  }
+  return [...baseSeeds, ...extras];
+}
+
+function applyWorkspaceDirectoryOverridesToSeed(
+  seed: WorkspaceSeed,
+  directory: WorkspaceDirectoryV1 | null,
+): WorkspaceSeed {
+  const override = directory?.seedOverrides?.[seed.id];
+  if (!override) {
+    return seed;
+  }
+  return {
+    ...seed,
+    name: override.name ?? seed.name,
+    clientLabel: override.clientLabel ?? seed.clientLabel,
+  };
+}
+
+function resolveWorkspaceSeedById(
+  workspaceId: string,
+  directory: WorkspaceDirectoryV1 | null,
+  merged: WorkspaceSeed[],
+): WorkspaceSeed | undefined {
+  const raw = merged.find((seed) => seed.id === workspaceId);
+  if (!raw) {
+    return undefined;
+  }
+  return applyWorkspaceDirectoryOverridesToSeed(raw, directory);
+}
+
+function workspaceLifecycleFromDirectory(
+  workspaceId: string,
+  directory: WorkspaceDirectoryV1 | null,
+): 'active' | 'archived' {
+  const custom = directory?.customWorkspaces?.find((entry) => entry.id === workspaceId);
+  if (custom) {
+    return custom.status;
+  }
+  if (directory?.seedOverrides?.[workspaceId]?.status === 'archived') {
+    return 'archived';
+  }
+  return 'active';
+}
+
+function ownerDisplayForWorkspaceSeed(
+  seed: WorkspaceSeed,
+  directory: WorkspaceDirectoryV1 | null,
+): { name: string; identityId: string | null } {
+  const overrideOwner =
+    directory?.seedOverrides?.[seed.id]?.ownerIdentityId ??
+    directory?.customWorkspaces?.find((entry) => entry.id === seed.id)?.ownerIdentityId;
+  if (overrideOwner) {
+    const match = dashboardIdentitySeeds.find((identity) => identity.id === overrideOwner);
+    if (match) {
+      return { name: match.name, identityId: match.id };
+    }
+  }
+  const primaryClient = seed.members.find((member) => member.role === 'client');
+  if (primaryClient) {
+    return { name: primaryClient.displayName, identityId: null };
+  }
+  const staff = seed.members.find((member) => member.role === 'staff');
+  return { name: staff?.displayName ?? '—', identityId: null };
+}
+
 type WorkspaceConfigV1 = {
   version: 1;
   workspaces: Record<
     string,
     {
+      settings?: {
+        analyticsEnabled?: boolean;
+      };
       memberOverrides: Record<
         string,
         Partial<
           Record<
-            'client' | 'expert',
+            'client' | 'expert' | 'staff',
             {
               visible?: boolean;
               alias?: string;
+              maskedName?: string;
               showTitle?: boolean;
               showBio?: boolean;
+              displayMode?: 'full' | 'masked' | 'hidden';
             }
           >
         >
@@ -357,24 +485,19 @@ function readWorkspaceConfig(req: NextRequest): WorkspaceConfigV1 | null {
 export async function GET(req: NextRequest) {
   const delay = req.nextUrl.searchParams.get('delay');
   const fail = req.nextUrl.searchParams.get('fail');
-  const roleParam = req.nextUrl.searchParams.get('role');
-  const role: DashboardRole = isDashboardRole(roleParam)
-    ? roleParam
-    : defaultDashboardRole;
-  const capabilities = capabilitiesForRole(role);
+  const identityIdParam = req.nextUrl.searchParams.get('identityId');
+  const identityId = isDashboardIdentityId(identityIdParam)
+    ? identityIdParam
+    : defaultDashboardIdentityId;
+  const identity =
+    dashboardIdentitySeeds.find((seed) => seed.id === identityId) ??
+    dashboardIdentitySeeds[0];
   const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
   const workspaceConfig = readWorkspaceConfig(req);
-
-  const CURRENT_MEMBER_ID_BY_ROLE: Record<DashboardRole, string> = {
-    client: 'm-client-1',
-    expert: 'm-expert-1',
-    staff_admin: 'm-staff-1',
-    super_admin: 'm-super-1',
-  };
-
-  function hasMember(seed: WorkspaceSeed, memberId: string) {
-    return seed.members.some((m) => m.id === memberId);
-  }
+  const workspaceDirectory = readWorkspaceDirectoryFromCookieValue(
+    req.cookies.get(WORKSPACE_DIRECTORY_COOKIE_KEY)?.value,
+  );
+  const mergedWorkspaceSeeds = mergeDirectoryCustomWorkspaceSeeds(workspaceSeeds, workspaceDirectory);
 
   if (fail === '1') {
     return NextResponse.json(
@@ -391,85 +514,123 @@ export async function GET(req: NextRequest) {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  const baseVisibleWorkspaceSeeds =
-    role === 'super_admin'
-      ? workspaceSeeds
-      : workspaceSeeds.filter((w) => w.id !== 'ws-superadmin');
-
-  const associatedWorkspaceSeeds =
-    role === 'client' || role === 'expert'
-      ? baseVisibleWorkspaceSeeds.filter((w) => hasMember(w, CURRENT_MEMBER_ID_BY_ROLE[role]))
-      : baseVisibleWorkspaceSeeds;
-
-  if (!associatedWorkspaceSeeds.length) {
+  const membershipSeeds = getMembershipSeedsForIdentity(identityId, workspaceDirectory);
+  const memberships = getMembershipsForIdentity(identityId, workspaceDirectory);
+  let activeDashMemberships = memberships.filter(
+    (membership) => membership.status === 'active' && membership.toolAccess.canAccessDash,
+  );
+  if (identityId !== 'u-admin') {
+    activeDashMemberships = activeDashMemberships.filter(
+      (membership) =>
+        workspaceLifecycleFromDirectory(membership.workspaceId, workspaceDirectory) === 'active',
+    );
+  }
+  if (!activeDashMemberships.length) {
     return NextResponse.json(
       { error: 'No workspaces available for this user.' },
       { status: 404 },
     );
   }
 
-  const workspaces = associatedWorkspaceSeeds.map((w) => ({
-    id: w.id,
-    name: w.name,
-    clientLabel: w.clientLabel,
-  }));
+  const workspaces = activeDashMemberships
+    .map((membership) =>
+      resolveWorkspaceSeedById(membership.workspaceId, workspaceDirectory, mergedWorkspaceSeeds),
+    )
+    .filter((seed): seed is WorkspaceSeed => Boolean(seed))
+    .map((seed) => {
+      const owner = ownerDisplayForWorkspaceSeed(seed, workspaceDirectory);
+      const customEntry = workspaceDirectory?.customWorkspaces?.find((entry) => entry.id === seed.id);
+      return {
+        id: seed.id,
+        name: seed.name,
+        slug: seed.name.toLowerCase().replace(/\s+/g, '-'),
+        clientLabel: seed.clientLabel,
+        memberCount: seed.members.length,
+        ownerName: owner.name,
+        ownerIdentityId:
+          owner.identityId ??
+          workspaceDirectory?.seedOverrides?.[seed.id]?.ownerIdentityId ??
+          customEntry?.ownerIdentityId ??
+          undefined,
+        lifecycleStatus: workspaceLifecycleFromDirectory(seed.id, workspaceDirectory),
+        description:
+          customEntry?.description ?? workspaceDirectory?.seedOverrides?.[seed.id]?.description,
+        createdAt: customEntry?.createdAt ?? '2026-01-01T00:00:00.000Z',
+        source: customEntry ? 'custom' : 'seed',
+      };
+    });
 
-  const defaultWorkspaceIdByRole: Record<DashboardRole, string> = {
-    client: 'ws-acme',
-    expert: 'ws-acme',
-    staff_admin: 'ws-acme',
-    super_admin: 'ws-superadmin',
-  };
-
-  const preferredDefaultWorkspaceId = defaultWorkspaceIdByRole[role];
-  const fallbackDefaultWorkspaceId =
-    workspaces.some((w) => w.id === preferredDefaultWorkspaceId)
-      ? preferredDefaultWorkspaceId
-      : workspaces[0]?.id ?? preferredDefaultWorkspaceId;
-
-  if (workspaceIdParam && !workspaces.some((w) => w.id === workspaceIdParam)) {
-    return NextResponse.json(
-      { error: 'Workspace access denied for this user.' },
-      { status: 403 },
-    );
+  const defaultWorkspaceId =
+    activeDashMemberships.find((membership) => membership.role === 'admin')?.workspaceId ??
+    activeDashMemberships[0].workspaceId;
+  const requestedWorkspaceId = workspaceIdParam ?? defaultWorkspaceId;
+  const guard = guardWorkspaceAccess({
+    memberships,
+    workspaceId: requestedWorkspaceId,
+    requireDashTool: true,
+  });
+  if (guard.response) {
+    return guard.response;
   }
 
-  const activeWorkspaceId =
-    workspaceIdParam && workspaces.some((w) => w.id === workspaceIdParam)
-      ? workspaceIdParam
-      : fallbackDefaultWorkspaceId;
-
+  const activeWorkspaceId = requestedWorkspaceId;
+  const activeMembership =
+    memberships.find(
+      (membership) =>
+        membership.workspaceId === activeWorkspaceId &&
+        membership.status === 'active',
+    ) ?? activeDashMemberships[0];
+  const activeRole = activeMembership.role;
+  const permissions = permissionsForMembership(activeMembership);
+  const capabilities: DashboardCapabilities = capabilitiesForMembership(activeMembership);
   const workspaceSeed =
-    associatedWorkspaceSeeds.find((w) => w.id === activeWorkspaceId) ??
-    associatedWorkspaceSeeds[0];
+    resolveWorkspaceSeedById(activeWorkspaceId, workspaceDirectory, mergedWorkspaceSeeds) ??
+    resolveWorkspaceSeedById(
+      activeDashMemberships[0].workspaceId,
+      workspaceDirectory,
+      mergedWorkspaceSeeds,
+    ) ??
+    mergedWorkspaceSeeds[0];
 
-  const currentMemberId = (() => {
-    const preferred = CURRENT_MEMBER_ID_BY_ROLE[role];
-    if (role === 'client' || role === 'expert' || role === 'super_admin') {
-      return preferred;
-    }
-
-    // staff_admin: prefer stable staff identity when present; else use the staff member for the workspace.
-    return (
-      (preferred && hasMember(workspaceSeed, preferred) ? preferred : null) ??
-      seedMemberByRole(workspaceSeed, 'staff')?.id ??
-      workspaceSeed.members[0]?.id ??
-      'unknown'
-    );
-  })();
+  const availableWorkspaces = workspaces.map((workspace) => ({
+    id: workspace.id,
+    name: workspace.name,
+    slug: workspace.slug,
+    clientLabel: workspace.clientLabel,
+    metadata: { source: 'dash-seed' },
+  }));
 
   function seedMemberByRole(seed: WorkspaceSeed, memberRole: 'client' | 'expert' | 'staff') {
     return seed.members.find((m) => m.role === memberRole) ?? null;
   }
 
-  function memberOverride(memberId: string, audience: 'client' | 'expert') {
-    return workspaceConfig?.workspaces?.[activeWorkspaceId]?.memberOverrides?.[memberId]?.[audience] ?? null;
+  const currentAudienceRole: 'client' | 'expert' | 'staff' =
+    activeRole === 'admin' || activeRole === 'internal'
+      ? 'staff'
+      : activeRole === 'contractor'
+        ? 'expert'
+        : 'client';
+
+  const currentMemberId =
+    membershipSeeds
+      .find((seed) => seed.workspaceId === activeWorkspaceId)
+      ?.memberIdByAudience?.[currentAudienceRole] ??
+    seedMemberByRole(workspaceSeed, currentAudienceRole)?.id ??
+    workspaceSeed.members[0]?.id ??
+    'unknown';
+
+  function memberOverride(memberId: string, audience: 'client' | 'expert' | 'staff') {
+    return (
+      workspaceConfig?.workspaces?.[activeWorkspaceId]?.memberOverrides?.[memberId]?.[audience] ??
+      null
+    );
   }
 
   function projectRoleOverride(args: { projectId: string; memberId: string }) {
     return (
-      workspaceConfig?.workspaces?.[activeWorkspaceId]?.projectMembershipOverrides?.[args.projectId]?.[args.memberId]
-        ?.engagementRole ?? null
+      workspaceConfig?.workspaces?.[activeWorkspaceId]?.projectMembershipOverrides?.[
+        args.projectId
+      ]?.[args.memberId]?.engagementRole ?? null
     );
   }
 
@@ -478,10 +639,11 @@ export async function GET(req: NextRequest) {
       ? seed.projectMemberships
       : (() => {
           const seen = new Set<string>();
-          const rows: Array<{ projectId: string; memberId: string; engagementRole: string }> = [];
-          seed.tasks.forEach((t) => {
-            t.assigneeIds.forEach((memberId) => {
-              const key = `${t.projectId}:${memberId}`;
+          const rows: Array<{ projectId: string; memberId: string; engagementRole: string }> =
+            [];
+          seed.tasks.forEach((task) => {
+            task.assigneeIds.forEach((memberId) => {
+              const key = `${task.projectId}:${memberId}`;
               if (seen.has(key)) return;
               seen.add(key);
               const member = seed.members.find((m) => m.id === memberId);
@@ -491,160 +653,112 @@ export async function GET(req: NextRequest) {
                   : member?.role === 'staff'
                     ? 'Altvina'
                     : 'Client';
-              rows.push({ projectId: t.projectId, memberId, engagementRole: fallbackRole });
+              rows.push({
+                projectId: task.projectId,
+                memberId,
+                engagementRole: fallbackRole,
+              });
             });
           });
           return rows;
         })();
 
-    return base.map((m) => ({
-      ...m,
-      engagementRole: projectRoleOverride({ projectId: m.projectId, memberId: m.memberId }) ?? m.engagementRole,
+    return base.map((membership) => ({
+      ...membership,
+      engagementRole:
+        projectRoleOverride({
+          projectId: membership.projectId,
+          memberId: membership.memberId,
+        }) ?? membership.engagementRole,
     }));
   }
 
   function maskMembers(seed: WorkspaceSeed): WorkspaceSeed['members'] {
-    if (role === 'staff_admin' || role === 'super_admin') {
-      return seed.members.map((m) => ({
-        ...m,
-      }));
+    if (activeRole === 'admin' || activeRole === 'internal') {
+      return seed.members.map((member) => ({ ...member }));
     }
 
-    if (role === 'client') {
-      let expertIndex = 0;
-      return seed.members
-        .filter((m) => m.role !== 'client' || m.id === currentMemberId)
-        .flatMap((m) => {
-          const o = memberOverride(m.id, 'client');
-          if (o?.visible === false && m.id !== currentMemberId) {
-            return [];
-          }
+    const audience: 'client' | 'expert' = activeRole === 'contractor' ? 'expert' : 'client';
+    const roleCounters = { client: 0, expert: 0, staff: 0 } as Record<
+      'client' | 'expert' | 'staff',
+      number
+    >;
+    const roleLabel: Record<'client' | 'expert' | 'staff', string> = {
+      client: workspaceSeed.clientLabel,
+      expert: 'Expert',
+      staff: 'Altvina',
+    };
 
-          const base = { ...m, email: undefined };
-          if (m.role === 'expert') {
-            expertIndex += 1;
-            const titleHidden = o?.showTitle === false;
-            const bioHidden = o?.showBio ? false : true;
-            return [
-              {
-                ...base,
-                title: titleHidden ? undefined : base.title,
-                bio: bioHidden ? undefined : base.bio,
-                firstName: undefined,
-                lastName: undefined,
-                fieldMask: {
-                  name: true,
-                  title: titleHidden || undefined,
-                  bio: bioHidden || undefined,
-                },
-                displayName:
-                  (o?.alias?.trim() ? o.alias.trim() : null) ??
-                  `Expert ${String.fromCharCode(64 + expertIndex)}`,
-              },
-            ];
-          }
-          if (m.role === 'staff') {
-            const titleHidden = o?.showTitle === false;
-            const bioHidden = o?.showBio ? false : true;
-            return [
-              {
-                ...base,
-                title: titleHidden ? undefined : base.title,
-                bio: bioHidden ? undefined : base.bio,
-                fieldMask: {
-                  title: titleHidden || undefined,
-                  bio: bioHidden || undefined,
-                },
-                displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
-              },
-            ];
-          }
-          const titleHidden = o?.showTitle === false;
-          const bioHidden = o?.showBio ? false : true;
-          return [
-            {
-              ...base,
-              title: titleHidden ? undefined : base.title,
-              bio: bioHidden ? undefined : base.bio,
-              fieldMask: {
-                title: titleHidden || undefined,
-                bio: bioHidden || undefined,
-              },
-              displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
-            },
-          ];
-        });
+    function normalizedMode(override: ReturnType<typeof memberOverride>) {
+      if (override?.displayMode) {
+        return override.displayMode;
+      }
+      if (override?.visible === false) {
+        return 'hidden' as const;
+      }
+      return 'full' as const;
     }
 
-    // expert role
-    let clientIndex = 0;
     return seed.members
-      .filter((m) => m.role !== 'client' || m.id === currentMemberId)
-      .flatMap((m) => {
-        const o = memberOverride(m.id, 'expert');
-        if (o?.visible === false && m.id !== currentMemberId) {
+      .filter((member) => member.role !== 'client' || member.id === currentMemberId)
+      .flatMap((member) => {
+        const override = memberOverride(member.id, audience);
+        const mode = normalizedMode(override);
+
+        if (mode === 'hidden' && member.id !== currentMemberId) {
           return [];
         }
 
-        const base = { ...m, email: undefined };
-        if (m.role === 'client') {
-          clientIndex += 1;
-          const titleHidden = o?.showTitle === false;
-          const bioHidden = o?.showBio ? false : true;
-          return [
-            {
-              ...base,
-              title: titleHidden ? undefined : base.title,
-              bio: bioHidden ? undefined : base.bio,
-              firstName: undefined,
-              lastName: undefined,
-              fieldMask: {
-                name: true,
-                title: titleHidden || undefined,
-                bio: bioHidden || undefined,
-              },
-              displayName:
-                (o?.alias?.trim() ? o.alias.trim() : null) ??
-                `Client ${String.fromCharCode(64 + clientIndex)}`,
-            },
-          ];
+        const base = { ...member, email: undefined };
+        if (mode === 'full' || member.id === currentMemberId) {
+          return [base];
         }
-        const titleHidden = o?.showTitle === false;
-        const bioHidden = o?.showBio ? false : true;
+
+        roleCounters[member.role] += 1;
+        const roleIndex = roleCounters[member.role];
+        const maskedName = override?.maskedName?.trim() || override?.alias?.trim();
+        const titleHidden = override?.showTitle === false;
+        const bioHidden = override?.showBio !== true;
+
         return [
           {
             ...base,
             title: titleHidden ? undefined : base.title,
             bio: bioHidden ? undefined : base.bio,
+            firstName: undefined,
+            lastName: undefined,
             fieldMask: {
+              name: true,
               title: titleHidden || undefined,
               bio: bioHidden || undefined,
             },
-            displayName: o?.alias?.trim() ? o.alias.trim() : base.displayName,
+            displayName:
+              maskedName && maskedName.length > 0
+                ? maskedName
+                : `${roleLabel[member.role]} ${String.fromCharCode(64 + roleIndex)}`,
           },
         ];
       });
   }
 
   const maskedMembers = maskMembers(workspaceSeed);
-
-  const members = maskedMembers.map((m) => ({
-    id: m.id,
-    firstName: m.firstName,
-    lastName: m.lastName,
-    displayName: m.displayName,
-    username: m.username,
-    role: m.role,
-    headline: m.headline,
-    title: m.title,
-    bio: m.bio,
-    location: m.location,
-    phone: capabilities.canViewContactInfo ? m.phone : undefined,
-    email: capabilities.canViewContactInfo ? m.email : undefined,
-    linkedInUrl: m.linkedInUrl,
-    website: m.website,
-    skills: m.skills,
-    fieldMask: m.fieldMask,
+  const members = maskedMembers.map((member) => ({
+    id: member.id,
+    firstName: member.firstName,
+    lastName: member.lastName,
+    displayName: member.displayName,
+    username: member.username,
+    role: member.role,
+    headline: member.headline,
+    title: member.title,
+    bio: member.bio,
+    location: member.location,
+    phone: capabilities.canViewContactInfo ? member.phone : undefined,
+    email: capabilities.canViewContactInfo ? member.email : undefined,
+    linkedInUrl: member.linkedInUrl,
+    website: member.website,
+    skills: member.skills,
+    fieldMask: member.fieldMask,
     contactMask: {
       email: !capabilities.canViewContactInfo,
       phone: !capabilities.canViewContactInfo,
@@ -673,6 +787,53 @@ export async function GET(req: NextRequest) {
     subtasks: workspaceSeed.subtasks,
   };
 
+  let dashboardActionRequests: DashboardActionRequest[] = [];
+  try {
+    const serverRows = await listWorkspaceActionRequests({
+      workspaceId: activeWorkspaceId,
+      statuses: actionRequestOpenStatuses,
+      limit: 10,
+    });
+    dashboardActionRequests = serverRows.map((request) => ({
+      ...request,
+      targetName:
+        request.targetId != null
+          ? workspaceSeed.members.find((member) => member.id === request.targetId)
+              ?.displayName ?? null
+          : null,
+    }));
+
+    const membershipByProject = buildProjectMemberships(workspaceSeed);
+    const viewerProjectIds = new Set(
+      membershipByProject
+        .filter((membership) => membership.memberId === currentMemberId)
+        .map((membership) => membership.projectId),
+    );
+    const isStaffViewer = activeRole === 'admin' || activeRole === 'internal';
+
+    dashboardActionRequests = dashboardActionRequests.filter((request) => {
+      if (isStaffViewer) return true;
+      if (request.taskForType === 'organization') return true;
+      if (request.taskForType === 'person') {
+        return request.targetId != null && request.targetId === currentMemberId;
+      }
+      if (request.taskForType === 'group') {
+        if (!request.targetId) return false;
+        if (request.targetId === 'clients') return currentAudienceRole === 'client';
+        if (request.targetId === 'experts') return currentAudienceRole === 'expert';
+        if (request.targetId === 'staff') return currentAudienceRole === 'staff';
+        return false;
+      }
+      if (request.taskForType === 'projectTeam') {
+        return request.targetId != null && viewerProjectIds.has(request.targetId);
+      }
+      return false;
+    });
+  } catch (error) {
+    void error;
+    dashboardActionRequests = [];
+  }
+
   const manageProjectsByRole = (() => {
     const rows = workspaceSeed.tasks.map((t) => {
       const status =
@@ -696,7 +857,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    if (role === 'staff_admin' || role === 'super_admin') {
+    if (permissions.canManageWorkspaceUsers || capabilities.canViewAllProjects) {
       return {
         title: 'Manage Projects',
         filters: [
@@ -710,7 +871,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    if (role === 'client') {
+    if (activeRole === 'client' || activeRole === 'viewer') {
       return {
         title: 'My Assignments',
         filters: [
@@ -737,31 +898,8 @@ export async function GET(req: NextRequest) {
     };
   })();
 
-  const userByRole = {
-    client: {
-      name: 'Jordan Taylor',
-      email: 'owner@acme-logistics.com',
-      initials: 'JT',
-    },
-    expert: {
-      name: 'Alex Morgan',
-      email: 'expert@altvina.pro',
-      initials: 'AM',
-    },
-    staff_admin: {
-      name: 'Olivia Rodrigo',
-      email: 'olivia@altvina.com',
-      initials: 'OR',
-    },
-    super_admin: {
-      name: 'Avery Admin',
-      email: 'avery@altvina.com',
-      initials: 'AA',
-    },
-  } satisfies Record<DashboardRole, { name: string; email: string; initials: string }>;
-
   const inboxByRole =
-    role === 'expert'
+    activeRole === 'contractor'
       ? {
           ...inboxPreview,
           messages: inboxPreview.messages.map((m) => ({
@@ -771,7 +909,7 @@ export async function GET(req: NextRequest) {
         }
       : inboxPreview;
 
-  const currentUserName = userByRole[role].name;
+  const currentUserName = identity.name;
   const firstName = currentUserName.trim().split(/\s+/)[0] ?? 'there';
   const sidebarAssistantForUser = {
     ...sidebarAssistant,
@@ -779,9 +917,13 @@ export async function GET(req: NextRequest) {
   };
 
   return NextResponse.json({
-    role,
+    role: activeRole,
+    permissions,
     capabilities,
-    user: userByRole[role],
+    user: identity,
+    memberships,
+    activeMembership,
+    availableWorkspaces,
     kpis: dashboardKpis,
     manageProjects: manageProjectsByRole,
     sidebarAssistant: sidebarAssistantForUser,
@@ -789,7 +931,16 @@ export async function GET(req: NextRequest) {
     inboxPreview: inboxByRole,
     workspaces,
     activeWorkspaceId,
+    workspaceFeatures: {
+      analyticsEnabled: Boolean(
+        workspaceDirectory?.customWorkspaces?.find((entry) => entry.id === activeWorkspaceId)
+          ?.analyticsEnabled ??
+          workspaceConfig?.workspaces?.[activeWorkspaceId]?.settings?.analyticsEnabled ??
+          false,
+      ),
+    },
     workspace,
+    actionRequests: dashboardActionRequests,
   });
 }
 

@@ -1,12 +1,18 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { ChevronRight, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Sparkles, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import CustomLink from '@/components/shared/Link';
 import { Button } from '@/components/shared/ui/button';
 import { cn } from '@/lib/utils';
+import {
+  actionRequestLinkCtaLabel,
+  actionRequestPriorityLabel,
+  actionRequestTaskForLabel,
+  type DashboardActionRequest,
+} from '@/lib/action-requests';
 
 import { dashboardTokens } from '@/app/dashboard/dashboard-tokens';
 import { DashboardCard } from '@/app/dashboard/_components/dashboard-card';
@@ -22,9 +28,13 @@ type SidebarAssistant = {
 export function Sidebar({
   assistant,
   navItems,
+  actionRequests,
+  activeWorkspaceName,
 }: {
   assistant?: SidebarAssistant;
   navItems?: Array<{ id: string; label: string; href: string }>;
+  actionRequests?: DashboardActionRequest[];
+  activeWorkspaceName?: string;
 }) {
   const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,6 +104,18 @@ export function Sidebar({
   } as const;
 
   const sidebarAssistant = assistant ?? assistantFallback;
+  const visibleActionRequests = actionRequests ?? [];
+
+  function formatDueDate(value?: string | null) {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Intl.DateTimeFormat(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(parsed);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -132,43 +154,88 @@ export function Sidebar({
         </DashboardCard>
       ) : null}
 
-      <DashboardCard
-        title="Next steps"
-        action={
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn(
-              'h-8 w-8 rounded-full',
-              dashboardTokens.surfaceMuted,
-              dashboardTokens.border,
-              dashboardTokens.focusRing,
-            )}
-            aria-label="View next steps"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        }
-      >
-        <div className={cn('text-sm', dashboardTokens.textMuted)}>
-          Keep collaboration controlled. Use Altvina as the conduit for
-          decisions and updates.
-        </div>
-        <ul className={cn('mt-4 space-y-2 text-sm', dashboardTokens.textMuted)}>
-          <li className="flex items-start gap-2">
-            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-secondary-600 dark:bg-secondary-400" />
-            Share your current priority and success metric.
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary-600 dark:bg-primary-400" />
-            Confirm your next deliverable and due date.
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-slate-700 dark:bg-slate-300" />
-            Ask the Concierge to draft a clean status update.
-          </li>
-        </ul>
-      </DashboardCard>
+      {visibleActionRequests.length ? (
+        <DashboardCard title="Action Required">
+          <div className={cn('text-xs', dashboardTokens.textMuted)}>
+            Active dependencies Altvina is currently waiting on.
+          </div>
+          <div className="-mx-1 mt-3 overflow-x-auto pb-1">
+            <div className="flex gap-3 px-1">
+              {visibleActionRequests.map((request) => {
+                const dueDate = formatDueDate(request.dueDate);
+                const priorityLabel = actionRequestPriorityLabel[request.priority];
+                const requestedFromLabel = actionRequestTaskForLabel[request.taskForType];
+                const ctaLabel = actionRequestLinkCtaLabel[request.linkType];
+                const isHighPriority = request.priority === 'high';
+                const description = request.description?.trim();
+                const context = request.contextLabel?.trim();
+                const targetName = request.targetName?.trim();
+                return (
+                  <CustomLink
+                    key={request.id}
+                    href={request.linkTarget}
+                    className={cn(
+                      'group min-w-[238px] max-w-[238px] rounded-xl border p-3',
+                      'transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50',
+                      dashboardTokens.surface,
+                      dashboardTokens.border,
+                      dashboardTokens.focusRing,
+                      isHighPriority
+                        ? 'border-rose-300/90 dark:border-rose-500/50'
+                        : undefined,
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                          request.priority === 'high'
+                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+                            : request.priority === 'medium'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
+                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+                        )}
+                      >
+                        {priorityLabel}
+                      </span>
+                      <span className={cn('text-[11px] font-medium', dashboardTokens.textSubtle)}>
+                        {requestedFromLabel}
+                      </span>
+                    </div>
+                    <div className="mt-2 line-clamp-2 text-sm font-semibold leading-snug">
+                      {request.title}
+                    </div>
+                    <div className={cn('mt-2 space-y-1 text-[11px]', dashboardTokens.textMuted)}>
+                      {targetName ? (
+                        <div className="line-clamp-1">Assigned to: {targetName}</div>
+                      ) : null}
+                      {context ? <div className="line-clamp-1">{context}</div> : null}
+                      {activeWorkspaceName ? (
+                        <div className="line-clamp-1">{activeWorkspaceName}</div>
+                      ) : null}
+                      {dueDate ? (
+                        <div className="inline-flex items-center gap-1">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          Due {dueDate}
+                        </div>
+                      ) : null}
+                    </div>
+                    {description ? (
+                      <div className={cn('mt-2 line-clamp-2 text-[11px]', dashboardTokens.textMuted)}>
+                        {description}
+                      </div>
+                    ) : null}
+                    <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary-700 dark:text-primary-300">
+                      {ctaLabel}
+                      <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </div>
+                  </CustomLink>
+                );
+              })}
+            </div>
+          </div>
+        </DashboardCard>
+      ) : null}
 
       <div
         className={cn(
