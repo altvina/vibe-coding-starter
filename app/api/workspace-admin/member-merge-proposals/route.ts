@@ -1,10 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import {
-  dashboardIdentitySeeds,
-  defaultDashboardIdentityId,
-  isDashboardIdentityId,
-} from '@/app/dashboard/dashboard-identities';
+import { isDashboardIdentityId } from '@/app/dashboard/dashboard-identities';
+import { resolveDashboardIdentityForApiRequest } from '@/lib/auth/dashboard-request-identity';
 import { detectMemberDuplicates } from '@/lib/member-duplicates/detect';
 import type { MemberMergeApprovalMode } from '@/lib/member-duplicates/types';
 import { getAdminWorkspaceRosterForScan } from '@/lib/dashboard/workspace-roster-for-admin';
@@ -39,9 +36,8 @@ function parseBody(value: unknown): Record<string, unknown> | null {
 }
 
 export async function GET(req: NextRequest) {
-  const identityIdRaw = req.nextUrl.searchParams.get('identityId');
+  const { identityId } = resolveDashboardIdentityForApiRequest(req, 'optional');
   const workspaceId = req.nextUrl.searchParams.get('workspaceId');
-  const identityId = isDashboardIdentityId(identityIdRaw) ? identityIdRaw : defaultDashboardIdentityId;
   if (!workspaceId) {
     return invalid('workspaceId is required.');
   }
@@ -58,14 +54,13 @@ export async function GET(req: NextRequest) {
     return guard.response;
   }
 
-  const proposals = listMemberMergeProposalsForWorkspace(workspaceId);
+  const proposals = await listMemberMergeProposalsForWorkspace(workspaceId);
   return NextResponse.json({ proposals });
 }
 
 export async function POST(req: NextRequest) {
-  const identityIdRaw = req.nextUrl.searchParams.get('identityId');
+  const { identityId, identity } = resolveDashboardIdentityForApiRequest(req, 'optional');
   const workspaceId = req.nextUrl.searchParams.get('workspaceId');
-  const identityId = isDashboardIdentityId(identityIdRaw) ? identityIdRaw : defaultDashboardIdentityId;
   if (!workspaceId) {
     return invalid('workspaceId is required.');
   }
@@ -137,11 +132,9 @@ export async function POST(req: NextRequest) {
     return guard.response;
   }
 
-  const identity =
-    dashboardIdentitySeeds.find((row) => row.id === identityId) ?? dashboardIdentitySeeds[0];
   const activeRole = guard.result.membership.role;
 
-  const roster = getAdminWorkspaceRosterForScan({
+  const roster = await getAdminWorkspaceRosterForScan({
     workspaceId,
     directory,
     identity,
@@ -152,7 +145,7 @@ export async function POST(req: NextRequest) {
   const forDetection = membersForDetectionFromSeedMembers(roster);
   const candidates = detectMemberDuplicates(forDetection);
 
-  const created = createMemberMergeProposalsFromScan({
+  const created = await createMemberMergeProposalsFromScan({
     workspaceId,
     candidates,
     approvalMode,
@@ -164,6 +157,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     scanned: candidates.length,
     proposalsCreated: created.length,
-    proposals: listMemberMergeProposalsForWorkspace(workspaceId),
+    proposals: await listMemberMergeProposalsForWorkspace(workspaceId),
   });
 }

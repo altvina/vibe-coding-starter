@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { dashboardIdentitySeeds, isDashboardIdentityId } from '@/app/dashboard/dashboard-identities';
+import { dashboardIdentitySeeds } from '@/app/dashboard/dashboard-identities';
+import { resolveDashboardIdentityForApiRequest } from '@/lib/auth/dashboard-request-identity';
 import {
   actionRequestLinkTypes,
   actionRequestPriorities,
@@ -34,15 +35,15 @@ function readWorkspaceDirectory(req: NextRequest) {
 }
 
 function parseIdentityAndWorkspace(req: NextRequest) {
-  const identityId = req.nextUrl.searchParams.get('identityId');
-  const workspaceId = req.nextUrl.searchParams.get('workspaceId');
-  if (!isDashboardIdentityId(identityId)) {
+  const resolution = resolveDashboardIdentityForApiRequest(req, 'required');
+  if (!resolution.ok) {
     return { error: invalid('Invalid identityId.') } as const;
   }
+  const workspaceId = req.nextUrl.searchParams.get('workspaceId');
   if (!workspaceId) {
     return { error: invalid('workspaceId is required.') } as const;
   }
-  return { identityId, workspaceId } as const;
+  return { identityId: resolution.identityId, workspaceId } as const;
 }
 
 function parseOptionalEnum<T extends readonly string[]>(

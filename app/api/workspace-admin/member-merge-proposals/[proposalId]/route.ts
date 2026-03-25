@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { defaultDashboardIdentityId, isDashboardIdentityId } from '@/app/dashboard/dashboard-identities';
+import { resolveDashboardIdentityForApiRequest } from '@/lib/auth/dashboard-request-identity';
 import {
   readWorkspaceDirectoryFromCookieValue,
   WORKSPACE_DIRECTORY_COOKIE_KEY,
@@ -27,8 +27,7 @@ type RouteParams = { params: Promise<{ proposalId: string }> };
 
 export async function POST(req: NextRequest, ctx: RouteParams) {
   const { proposalId } = await ctx.params;
-  const identityIdRaw = req.nextUrl.searchParams.get('identityId');
-  const identityId = isDashboardIdentityId(identityIdRaw) ? identityIdRaw : defaultDashboardIdentityId;
+  const { identityId } = resolveDashboardIdentityForApiRequest(req, 'optional');
 
   let body: { action?: string };
   try {
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest, ctx: RouteParams) {
     return invalid('action must be approve or reject.');
   }
 
-  const proposal = getMemberMergeProposal(proposalId);
+  const proposal = await getMemberMergeProposal(proposalId);
   if (!proposal) {
     return invalid('Proposal not found.', 404);
   }
@@ -61,13 +60,13 @@ export async function POST(req: NextRequest, ctx: RouteParams) {
 
   const result =
     action === 'approve'
-      ? recordMemberMergeDecision({
+      ? await recordMemberMergeDecision({
           proposalId,
           identityId,
           memberships,
           action: 'approve',
         })
-      : recordMemberMergeDecision({
+      : await recordMemberMergeDecision({
           proposalId,
           identityId,
           memberships,
@@ -83,10 +82,9 @@ export async function POST(req: NextRequest, ctx: RouteParams) {
 
 export async function DELETE(req: NextRequest, ctx: RouteParams) {
   const { proposalId } = await ctx.params;
-  const identityIdRaw = req.nextUrl.searchParams.get('identityId');
-  const identityId = isDashboardIdentityId(identityIdRaw) ? identityIdRaw : defaultDashboardIdentityId;
+  const { identityId } = resolveDashboardIdentityForApiRequest(req, 'optional');
 
-  const proposal = getMemberMergeProposal(proposalId);
+  const proposal = await getMemberMergeProposal(proposalId);
   if (!proposal) {
     return invalid('Proposal not found.', 404);
   }
@@ -103,7 +101,7 @@ export async function DELETE(req: NextRequest, ctx: RouteParams) {
     return guard.response;
   }
 
-  const result = cancelMemberMergeProposal(proposalId);
+  const result = await cancelMemberMergeProposal(proposalId);
   if (!result.ok) {
     return NextResponse.json({ error: result.reason }, { status: 400 });
   }

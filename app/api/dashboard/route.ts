@@ -9,15 +9,8 @@ import {
   capabilitiesForMembership,
   type DashboardCapabilities,
 } from '@/app/dashboard/dashboard-permissions';
-import {
-  dashboardIdentitySeeds,
-  defaultDashboardIdentityId,
-  isDashboardIdentityId,
-} from '@/app/dashboard/dashboard-identities';
-import {
-  getMembershipSeedsForIdentity,
-  getMembershipsForIdentity,
-} from '@/lib/auth/mock-memberships';
+import { getMembershipSeedsForIdentity, getMembershipsForIdentity } from '@/lib/auth/mock-memberships';
+import { resolveDashboardIdentityForApiRequest } from '@/lib/auth/dashboard-request-identity';
 import { WORKSPACE_CONFIG_COOKIE_KEY } from '@/app/dashboard/modules/workspace-admin/workspace-config';
 import {
   readWorkspaceDirectoryFromCookieValue,
@@ -111,13 +104,7 @@ function readWorkspaceConfig(req: NextRequest): WorkspaceConfigV1 | null {
 export async function GET(req: NextRequest) {
   const delay = req.nextUrl.searchParams.get('delay');
   const fail = req.nextUrl.searchParams.get('fail');
-  const identityIdParam = req.nextUrl.searchParams.get('identityId');
-  const identityId = isDashboardIdentityId(identityIdParam)
-    ? identityIdParam
-    : defaultDashboardIdentityId;
-  const identity =
-    dashboardIdentitySeeds.find((seed) => seed.id === identityId) ??
-    dashboardIdentitySeeds[0];
+  const { identityId, identity } = resolveDashboardIdentityForApiRequest(req, 'optional');
   const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
   const workspaceConfig = readWorkspaceConfig(req);
   const workspaceDirectory = readWorkspaceDirectoryFromCookieValue(
@@ -234,9 +221,16 @@ export async function GET(req: NextRequest) {
     staffMemberIdOverride,
   });
 
+  let appliedAliases: Record<string, string> = {};
+  try {
+    appliedAliases = await getAppliedAliasesForWorkspace(activeWorkspaceId);
+  } catch (error) {
+    void error;
+    appliedAliases = {};
+  }
   const workspaceSeedResolved = applyMemberAliasesToWorkspaceSeed(
     workspaceSeedWithViewer,
-    getAppliedAliasesForWorkspace(activeWorkspaceId),
+    appliedAliases,
   );
 
   const availableWorkspaces = workspaces.map((workspace) => ({
